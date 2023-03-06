@@ -10,7 +10,7 @@ def align(args):
     # signal1, sr1 = librosa.load(args[0], sr=8000, res_type='linear')
     signal1, sr1 = librosa.load(f"{args[0].rsplit('.', 1)[0]}.wav", sr=None)
     signal2, _ = librosa.load(f"{args[1].rsplit('.', 1)[0]}.wav", sr=sr1)
-
+    
     # Copy subs to new .srt file
     subs = pysrt.open(args[2])
     out_srtfile = args[1].rsplit('.', 1)[0] + ".srt"

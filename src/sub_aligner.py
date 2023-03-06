@@ -27,8 +27,6 @@ class App(customtkinter.CTk):
         # load images with light and dark mode image
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test_images")
         self.logo_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "CustomTkinter_logo_single.png")), size=(26, 26))
-        self.large_test_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "large_test_image.png")), size=(500, 150))
-        self.image_icon_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "image_icon_light.png")), size=(20, 20))
         self.mp4_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "mp4_ico_dark.png")),
                                                 dark_image=Image.open(os.path.join(image_path, "mp4_ico_light.png")), size=(50, 50))
         self.srt_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "srt_ico_dark.png")),
@@ -148,31 +146,39 @@ class App(customtkinter.CTk):
             self.subs_frame.grid_forget()
 
     def chooseFile_btn1_event(self):
-        self.filename1 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd())
+        previous1 = self.filename1
+        self.filename1 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose first Mp4 file")
         if self.filename1 == "":
+            self.filename1 = previous1
             return
+        self.first_frame_label.configure(text=self.filename1.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename1)
-        x_coords, y_coords = convert(self.filename1, self.canvas_width, self.canvas_height)
+        x_coords, y_coords = convert(self.filename1, self.canvas_width+200, 600)
         self.draw_waveform1(x_coords, y_coords)
         self.check_files()
         
         
     def chooseFile_btn2_event(self):
-        self.filename2 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd())
+        previous2 = self.filename2
+        self.filename2 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose second Mp4 file")
         if self.filename2 == "":
+            self.filename2 = previous2
             return
+        self.second_frame_label.configure(text=self.filename2.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename2)
-        x_coords, y_coords = convert(self.filename2, self.canvas_width, self.canvas_height)
+        x_coords, y_coords = convert(self.filename2, self.canvas_width+200, 600)
         self.draw_waveform2(x_coords, y_coords)
         self.check_files()
 
 
     def choose_srtFile_event(self):
-        self.srtfilename = askopenfilename(filetypes=(('SRT files', '*.srt'),('All files', '*.*')), initialdir=os.getcwd())
+        previousSrt = self.srtfilename
+        self.srtfilename = askopenfilename(filetypes=(('SRT files', '*.srt'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose SRT subtitle file")
         if self.srtfilename == "":
+            self.srtfilename = previousSrt
             return
         print(self.srtfilename)
-        tf = open(self.srtfilename)
+        tf = open(self.srtfilename, encoding="utf8")
         orig_sub_txt = tf.read()
         self.orig_sub.configure(state="normal")
         self.orig_sub.delete("0.0", "end")
@@ -201,7 +207,7 @@ class App(customtkinter.CTk):
 
     
     def out_srt(self):
-        tf = open(self.filename2.rsplit(".", 1)[0] + ".srt")
+        tf = open(self.filename2.rsplit(".", 1)[0] + ".srt", encoding="utf8")
         out_sub_txt = tf.read()
         self.aligned_sub.configure(state="normal")
         self.aligned_sub.delete("0.0", "end")
@@ -213,6 +219,7 @@ class App(customtkinter.CTk):
         if self.srtfilename != "" and self.filename1 != "" and self.filename2 != "":
             self.align_button.configure(state="normal")
         
+
     def change_appearance_mode_event(self, new_appearance_mode):
         customtkinter.set_appearance_mode(new_appearance_mode)
 
