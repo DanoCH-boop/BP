@@ -1,8 +1,8 @@
 import pysrt
 
-def sub_edit(start, end, args, mode, offset):
+def sub_edit(start, end, out_srtfile, mode, offset):
     # Load the subtitles from the .srt file
-    subs = pysrt.open(args[3]) 
+    subs = pysrt.open(out_srtfile) 
     # Edit the subtitles
     end -= offset
     start -= offset
@@ -19,5 +19,5 @@ def sub_edit(start, end, args, mode, offset):
     print("Start End:", start, end)
     
     # Save the edited subtitles
-    shifted_subs.save(args[3])
+    shifted_subs.save(out_srtfile)
     

@@ -8,12 +8,13 @@ def align(args):
 
     # Load signals
     # signal1, sr1 = librosa.load(args[0], sr=8000, res_type='linear')
-    signal1, sr1 = librosa.load(f"{args[0].split('.', 1)[0]}.wav", sr=None)
-    signal2, _ = librosa.load(f"{args[1].split('.', 1)[0]}.wav", sr=sr1)
+    signal1, sr1 = librosa.load(f"{args[0].rsplit('.', 1)[0]}.wav", sr=None)
+    signal2, _ = librosa.load(f"{args[1].rsplit('.', 1)[0]}.wav", sr=sr1)
 
     # Copy subs to new .srt file
-    subs = pysrt.open(args[2]) 
-    subs.save(args[3])
+    subs = pysrt.open(args[2])
+    out_srtfile = args[1].rsplit('.', 1)[0] + ".srt"
+    subs.save(out_srtfile)
     
     mode = 0
     # Decide what signal is longer
@@ -32,9 +33,11 @@ def align(args):
     # |||||||||||||||||||||||||
     # ||||||||||||||||
     if(last2 == signal2.size):
-        sub_edit(last1/sr1, signal1.size/sr1, args, mode)
+        sub_edit(last1/sr1, signal1.size/sr1, out_srtfile, mode)
         exit()
+
     offset = 0.0
+
     # Main loop
     while(True):
         # snip = signal2[last2:(last2+48000)]
@@ -44,7 +47,7 @@ def align(args):
         peak = int(np.argmax(c)) + last1
         print("Peak + last1:", peak/sr1)
 
-        sub_edit(last1/sr1, peak/sr1, args, mode, offset)
+        sub_edit(last1/sr1, peak/sr1, out_srtfile, mode, offset)
         offset += np.argmax(c)/sr1
         last1 = int(peak)
 
