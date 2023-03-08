@@ -15,7 +15,7 @@ def align(args):
     subs = pysrt.open(args[2])
     out_srtfile = args[1].rsplit('.', 1)[0] + ".srt"
     subs.save(out_srtfile)
-    
+
     mode = 0
     # Decide what signal is longer
     if(signal1.size - signal2.size < 0):
@@ -33,11 +33,11 @@ def align(args):
     # |||||||||||||||||||||||||
     # ||||||||||||||||
     if(last2 == signal2.size):
-        sub_edit(last1/sr1, signal1.size/sr1, out_srtfile, mode)
+        s,e = sub_edit(last1/sr1, signal1.size/sr1, args, mode)
         exit()
 
     offset = 0.0
-
+    indexes = []
     # Main loop
     while(True):
         # snip = signal2[last2:(last2+48000)]
@@ -47,7 +47,7 @@ def align(args):
         peak = int(np.argmax(c)) + last1
         print("Peak + last1:", peak/sr1)
 
-        sub_edit(last1/sr1, peak/sr1, out_srtfile, mode, offset)
+        s,e = sub_edit(last1/sr1, peak/sr1, args, mode, offset)
         offset += np.argmax(c)/sr1
         last1 = int(peak)
 
@@ -59,3 +59,7 @@ def align(args):
 
         last1 += int(mismatch)
         last2 += int(mismatch)
+        
+        indexes.append((s,e))
+
+    return indexes 

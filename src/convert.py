@@ -4,9 +4,9 @@ import numpy as np
 
 def convert(filename, canvas_width, canvas_height):
     wav_filename = filename.rsplit('.', 1)[0] + ".wav"
-    mp4_to_wav1 = f"ffmpeg -i {filename} -ar 8000 -y {wav_filename}"
+    # mp4_to_wav1 = f"ffmpeg -i {filename} -ar 8000 -y {wav_filename}"
     # mp4_to_wav2 = f"ffmpeg -i {args[1]} -ar 8000 {args[1].split('.', 1)[0]}.wav"
-    os.system(mp4_to_wav1)
+    # os.system(mp4_to_wav1)
     print("Conversion done")
     # os.system(mp4_to_wav2)
  
@@ -21,6 +21,3 @@ def convert(filename, canvas_width, canvas_height):
     y_coords = (y[:-1] + y[1:]) / 2 * y_scale
 
     return x_coords, y_coords
-
-
-

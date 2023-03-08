@@ -1,4 +1,6 @@
 import customtkinter
+from tkinter.messagebox import showinfo
+from tkinter.messagebox import Message
 import tkinter as tk
 from tkinter import Canvas
 from tkinter.filedialog import askopenfilename
@@ -23,7 +25,7 @@ class App(customtkinter.CTk):
         self.srtfilename = ""
         self.filename1 = ""
         self.filename2 = ""
-
+        
         # load images with light and dark mode image
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test_images")
         self.logo_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "CustomTkinter_logo_single.png")), size=(26, 26))
@@ -55,6 +57,10 @@ class App(customtkinter.CTk):
                                                       fg_color="transparent", text_color=("gray10", "gray90"), hover_color=("gray70", "gray30"),
                                                       image=self.srt_icon, anchor="w", command=self.choose_srtFile_event)
         self.choose_srtFile.grid(row=3, column=0, pady=10)
+        
+        self.clear_btn = customtkinter.CTkButton(self.sidebar_frame, text="Clear", width=100, height=40,
+                                                    font=customtkinter.CTkFont(size=15), command=self.clear_window)
+        self.clear_btn.grid(row=4, column=0, pady=10, sticky="n")
 
         self.switch_mode = customtkinter.CTkSegmentedButton(self.sidebar_frame, corner_radius=10, values=["WAV", "SRT"], height=40,
                                                             command=self.select_frame_by_name)
@@ -78,24 +84,11 @@ class App(customtkinter.CTk):
         # self.waves_frame_button_2.grid(row=2, column=0, padx=20, pady=10)
         # self.waves_frame_button_3 = customtkinter.CTkButton(self.waves_frame, text="CTkButton", image=self.image_icon_image, compound="top")
         # self.waves_frame_button_3.grid(row=3, column=0, padx=20, pady=10)
-        self.align_button = customtkinter.CTkButton(self.waves_frame, text="Align", width=100, height=50,
-                                                    font=customtkinter.CTkFont(size=15), command=self.align_signals, state="disabled")
-        self.align_button.grid(row=4, column=0, padx=20, pady=10)
 
         # create subs frame
         self.subs_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.subs_frame.grid_columnconfigure(1, weight=1)
         self.subs_frame.grid_rowconfigure(1, weight=1) 
-
-        self.orig_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
-        self.orig_sub.insert("0.0", "Original subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet loaded!")
-        self.orig_sub.grid(row=0, column=0, padx=10, pady=10, stick="w")
-        self.orig_sub.configure(state="disabled")
-
-        self.aligned_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
-        self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet aligned!")
-        self.aligned_sub.grid(row=0, column=1, padx=10, pady=10, stick="e")
-        self.aligned_sub.configure(state="disabled")
 
         # select default frame
         self.select_frame_by_name(self.switch_mode.get())
@@ -120,6 +113,32 @@ class App(customtkinter.CTk):
         self.second_frame = customtkinter.CTkFrame(self.waves_frame, corner_radius=10, width=600, height=150)
         self.second_frame._canvas.create_line(0,90,800,90, fill="#3a7ebf")
         self.second_frame.grid(row=3, column=0, padx=10, pady=(0,10))
+
+        # initiate "aligned" button
+        self.align_button = customtkinter.CTkButton(self.waves_frame, text="Align", width=100, height=50,
+                                                    font=customtkinter.CTkFont(size=15), command=self.align_signals, state="disabled")
+        self.align_button.grid(row=4, column=0, padx=20, pady=10)
+
+        # Initiate "Subtitles Aligned!" label
+        self.aligned_text = customtkinter.CTkLabel(self.waves_frame, text="")
+        self.aligned_text.grid(row=5, column=0, pady=10)
+
+        # initiate subs frame
+        self.orig_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
+        self.orig_sub.insert("0.0", "Original subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet loaded!")
+        self.orig_sub.tag_add("Title", "1.0", "1.20")
+        self.orig_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
+        self.orig_sub.grid(row=0, column=0, padx=10, pady=10, stick="w")
+        self.orig_sub.configure(state="disabled")
+
+        self.aligned_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
+        self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet aligned!")
+        self.aligned_sub.tag_add("Title", "1.0", "1.20")
+        self.aligned_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
+        self.aligned_sub.grid(row=0, column=1, padx=10, pady=10, stick="e")
+        self.aligned_sub.configure(state="disabled")
+
+        self.orig_sub.tag_config("Removed", foreground="red", overstrike=True)
         
         # self.first_frame.grid_rowconfigure(0, weight=1)
         # self.first_frame.grid_columnconfigure(0, weight=1)
@@ -151,6 +170,12 @@ class App(customtkinter.CTk):
         if self.filename1 == "":
             self.filename1 = previous1
             return
+        elif self.filename1.rsplit(".", 1)[1] not in ("mp4","wav"):
+            showinfo("Wrong file type",f"File \"{self.filename1.rsplit('/', 1)[-1]}\" is not an Mp4 file!")
+            return
+        
+        self.switch_mode.set("WAV")
+        self.select_frame_by_name("WAV")
         self.first_frame_label.configure(text=self.filename1.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename1)
         x_coords, y_coords = convert(self.filename1, self.canvas_width+200, 600)
@@ -164,6 +189,11 @@ class App(customtkinter.CTk):
         if self.filename2 == "":
             self.filename2 = previous2
             return
+        elif self.filename2.rsplit(".", 1)[1] not in ("mp4","wav"):
+            showinfo("Wrong file type",f"File \"{self.filename2.rsplit('/', 1)[-1]}\" is not an Mp4 file!")
+            return
+        self.switch_mode.set("WAV")
+        self.select_frame_by_name("WAV")
         self.second_frame_label.configure(text=self.filename2.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename2)
         x_coords, y_coords = convert(self.filename2, self.canvas_width+200, 600)
@@ -177,13 +207,19 @@ class App(customtkinter.CTk):
         if self.srtfilename == "":
             self.srtfilename = previousSrt
             return
+        elif self.srtfilename.rsplit(".", 1)[1] != "srt":
+            showinfo("Wrong file type",f"File \"{self.srtfilename.rsplit('/', 1)[-1]}\" is not an SRT file!")
+            return
         print(self.srtfilename)
         tf = open(self.srtfilename, encoding="utf8")
         orig_sub_txt = tf.read()
         self.orig_sub.configure(state="normal")
         self.orig_sub.delete("0.0", "end")
         self.orig_sub.insert("0.0", "Original subtitles:\n\n" + orig_sub_txt)
+        self.orig_sub.tag_add("Title", "1.0", "1.20")
         self.orig_sub.configure(state="disabled")
+        self.switch_mode.set("SRT")
+        self.select_frame_by_name("SRT")
         self.check_files()
 
 
@@ -201,8 +237,11 @@ class App(customtkinter.CTk):
         
     def align_signals(self):
         filenames = [self.filename1, self.filename2, self.srtfilename]
-        align(filenames)
-        print("Aligned")
+        self.removed_indexes = align(filenames)
+        self.removed_indexes.append((21,24))
+        print("Aligned", self.removed_indexes)
+        self.aligned_text.configure(text="Subtiles Aligned!")
+        # showinfo("Dialog", "Subtitles Aligned!")
         self.out_srt()
 
     
@@ -212,12 +251,26 @@ class App(customtkinter.CTk):
         self.aligned_sub.configure(state="normal")
         self.aligned_sub.delete("0.0", "end")
         self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + out_sub_txt)
+        self.aligned_sub.tag_add("Title", "1.0", "1.20")
         self.aligned_sub.configure(state="disabled")
+
+        self.orig_sub.configure(state="normal")
+        for index in self.removed_indexes:
+            self.orig_sub.tag_add("Removed", str(index[0]+2)+".0", str(index[1]+2)+".0")
+        self.orig_sub.configure(state="disabled")
 
     
     def check_files(self):
         if self.srtfilename != "" and self.filename1 != "" and self.filename2 != "":
             self.align_button.configure(state="normal")
+        
+
+    def clear_window(self):
+        self.filename1 = ""
+        self.filename2 = ""
+        self.srtfilename = ""
+        self.aligned_text.configure(text="")
+        self.init_mainWindow()
         
 
     def change_appearance_mode_event(self, new_appearance_mode):
