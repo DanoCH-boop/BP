@@ -29,15 +29,19 @@ def align(args):
     last1 = int(first_mismatch)
     last2 = int(first_mismatch)
 
+    offset = 0.0
+    indexes = []
+    mismatches = []
+
     # Signals differ at the end
     # |||||||||||||||||||||||||
     # ||||||||||||||||
     if(last2 == signal2.size):
-        s,e = sub_edit(last1/sr1, signal1.size/sr1, args, mode)
+        s, e, start, end = sub_edit(last1/sr1, signal1.size/sr1, args, mode, offset)
+        indexes.append((s,e))
+        mismatches.append((start,end))
         exit()
 
-    offset = 0.0
-    indexes = []
     # Main loop
     while(True):
         # snip = signal2[last2:(last2+48000)]
@@ -47,12 +51,16 @@ def align(args):
         peak = int(np.argmax(c)) + last1
         print("Peak + last1:", peak/sr1)
 
-        s,e = sub_edit(last1/sr1, peak/sr1, args, mode, offset)
+        s, e, start, end = sub_edit(last1/sr1, peak/sr1, args, mode, offset)
         offset += np.argmax(c)/sr1
         last1 = int(peak)
 
         cmp_arr = signal1[last1:(last1+signal2.size-last2)] == signal2[last2:]
         mismatch = np.argwhere(cmp_arr==False)[0] if(np.argwhere(cmp_arr==False).size != 0) else -1
+
+        indexes.append((s,e))
+        mismatches.append((start,end))
+
         if(mismatch == -1):
             break
         print("Mismatch:",type(mismatch),mismatch/sr1)
@@ -60,6 +68,4 @@ def align(args):
         last1 += int(mismatch)
         last2 += int(mismatch)
         
-        indexes.append((s,e))
-
-    return indexes 
+    return indexes, mismatches

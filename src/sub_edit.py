@@ -29,5 +29,5 @@ def sub_edit(start, end, args, mode, offset):
     # Save the edited subtitles
     shifted_subs.save(out_srtfile)
 
-    return line_index1, line_index2
+    return line_index1, line_index2, start, end
     
