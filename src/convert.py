@@ -3,10 +3,10 @@ import librosa
 import numpy as np
 
 def convert(filename, canvas_width, canvas_height, mm=None, mode=None):
-    wav_filename = filename.rsplit('.', 1)[0] + ".wav"
-    # mp4_to_wav1 = f"ffmpeg -i {filename} -ar 8000 -y {wav_filename}"
+    wav_filename = filename.rsplit('.', 1)[0] + "_8khz.wav"
+    mp4_to_wav1 = f"ffmpeg -i {filename} -ar 8000 -y {wav_filename}"
     # mp4_to_wav2 = f"ffmpeg -i {args[1]} -ar 8000 {args[1].split('.', 1)[0]}.wav"
-    # os.system(mp4_to_wav1)
+    os.system(mp4_to_wav1)
     print("Conversion done")
     # os.system(mp4_to_wav2)
  

@@ -30,4 +30,3 @@ def sub_edit(start, end, args, mode, offset):
     shifted_subs.save(out_srtfile)
 
     return line_index1, line_index2, start, end
-    
