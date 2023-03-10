@@ -63,7 +63,7 @@ def align(args):
 
         if(mismatch == -1):
             break
-        print("Mismatch:",type(mismatch),mismatch/sr1)
+        print("Mismatch:", type(mismatch),mismatch/sr1)
 
         last1 += int(mismatch)
         last2 += int(mismatch)

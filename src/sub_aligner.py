@@ -21,10 +21,15 @@ class App(customtkinter.CTk):
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
+        
+        self.srtfilename = "../example/example.srt"
+        self.filename1 = "../example/example.wav"
+        self.filename2 = "../example/example_trim.wav"
 
-        self.srtfilename = "C:/Users/pewdi/Desktop/BP/media/meet2.srt"
-        self.filename1 = "C:/Users/pewdi/Desktop/BP/media/meet2.wav"
-        self.filename2 = "C:/Users/pewdi/Desktop/BP/media/meet2_trim.wav"
+        self.example_loaded = 0
+
+        self.removed_fill = "#db3737" # red
+        self.normal_fill = "#3a7ebf"  # dark blue
         
         # load images with light and dark mode image
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test_images")
@@ -94,6 +99,8 @@ class App(customtkinter.CTk):
 
         self.crds = {"xcrds1": [], "ycrds1": [], "xcrds2": [], "ycrds2": [], "xcrds3": [], "ycrds3": []}
         self.signal_mismatch = []
+        self.x_coords2 = []
+        self.y_coords2 = []
 
         # initiate first waveform
         self.first_frame_label = customtkinter.CTkLabel(self.waves_frame, text="first_file.wav")
@@ -102,7 +109,7 @@ class App(customtkinter.CTk):
         self.canvas_height = 150
         self.canvas_width = 600
         self.first_frame = customtkinter.CTkFrame(self.waves_frame, corner_radius=10, width=600, height=150)
-        self.first_frame._canvas.create_line(0,90,800,90, fill="#3a7ebf")
+        self.first_frame._canvas.create_line(0,90,800,90, fill=self.normal_fill)
         self.first_frame.grid(row=1, column=0, padx=10, pady=(0,10))
 
         # initiate second waveform
@@ -110,7 +117,7 @@ class App(customtkinter.CTk):
         self.second_frame_label.grid(row=2, column=0, padx=115, pady=(10,0), sticky="w")
 
         self.second_frame = customtkinter.CTkFrame(self.waves_frame, corner_radius=10, width=600, height=150)
-        self.second_frame._canvas.create_line(0,90,800,90, fill="#3a7ebf")
+        self.second_frame._canvas.create_line(0,90,800,90, fill=self.normal_fill)
         self.second_frame.grid(row=3, column=0, padx=10, pady=(0,10))
 
         # initiate "aligned" button
@@ -146,27 +153,27 @@ class App(customtkinter.CTk):
         self.aligned_text2 = customtkinter.CTkLabel(self.subs_frame, text="")
         self.aligned_text2.grid(row=2, pady=(0,60), columnspan=2)
 
-        self.orig_sub.tag_config("Removed", foreground="red", overstrike=True)
+        self.orig_sub.tag_config("Removed", foreground=self.removed_fill, overstrike=True)
         
         # self.first_frame.grid_rowconfigure(0, weight=1)
         # self.first_frame.grid_columnconfigure(0, weight=1)
         # self.canvas = customtkinter.CTkCanvas(self.first_frame, width=800, height=200, bg="grey20")
         # self.canvas.grid(row=0, column=0)
-        # self.canvas.create_line(0,90,800,90, fill="#3a7ebf")
+        # self.canvas.create_line(0,90,800,90, fill=self.normal_fill)
         
 
     def select_frame_by_name(self, name):
 
-        print("Mode switched to: " + self.switch_mode.get())
+        print("Mode switched to: " + name)
         # show selected frame
-        if self.switch_mode.get() == "WAV":
+        if name == "WAV":
             self.waves_frame.grid(row=0, column=1, sticky="nsew")
             self.mode_switch.configure(state="normal")
             # self.mode_switch.grid(row=5, column=0, pady=10)
         else:
             self.waves_frame.grid_forget()
 
-        if self.switch_mode.get() == "SRT":
+        if name == "SRT":
             self.subs_frame.grid(row=0, column=1, sticky="nsew")
             self.mode_switch.configure(state="disabled")
             # self.mode_switch.grid_forget()
@@ -175,10 +182,13 @@ class App(customtkinter.CTk):
 
     def chooseFile_btn1_event(self):
         previous1 = self.filename1
-        self.filename1 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose first Mp4 file")
+
+        if self.example_loaded == 1:
+            self.filename1 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose first Mp4 file")
+
         if self.filename1 == "":
             self.filename1 = previous1
-            # return
+            return
         elif self.filename1.rsplit(".", 1)[1] not in ("mp4","wav"):
             showinfo("Wrong file type",f"File \"{self.filename1.rsplit('/', 1)[-1]}\" is not an Mp4 file!")
             return
@@ -194,10 +204,13 @@ class App(customtkinter.CTk):
         
     def chooseFile_btn2_event(self):
         previous2 = self.filename2
-        self.filename2 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose second Mp4 file")
+
+        if self.example_loaded == 1:
+            self.filename2 = askopenfilename(filetypes=(('Mp4 files', '*.mp4'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose second Mp4 file")
+
         if self.filename2 == "":
             self.filename2 = previous2
-            # return
+            return
         elif self.filename2.rsplit(".", 1)[1] not in ("mp4","wav"):
             showinfo("Wrong file type",f"File \"{self.filename2.rsplit('/', 1)[-1]}\" is not an Mp4 file!")
             return
@@ -212,10 +225,13 @@ class App(customtkinter.CTk):
 
     def choose_srtFile_event(self):
         previousSrt = self.srtfilename
-        self.srtfilename = askopenfilename(filetypes=(('SRT files', '*.srt'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose SRT subtitle file")
+        
+        if self.example_loaded == 1:
+            self.srtfilename = askopenfilename(filetypes=(('SRT files', '*.srt'),('All files', '*.*')), initialdir=os.getcwd(), title="Choose SRT subtitle file")
+        
         if self.srtfilename == "":
             self.srtfilename = previousSrt
-            # return
+            return
         elif self.srtfilename.rsplit(".", 1)[1] != "srt":
             showinfo("Wrong file type",f"File \"{self.srtfilename.rsplit('/', 1)[-1]}\" is not an SRT file!")
             return
@@ -235,21 +251,20 @@ class App(customtkinter.CTk):
     def draw_waveform1(self, x_coords, y_coords):
         self.first_frame._canvas.delete("all")
         # Draw the waveform
-        self.first_frame._canvas.create_line(*zip(x_coords, (self.canvas_height / 2 - y_coords)+18), fill="#3a7ebf")
+        self.first_frame._canvas.create_line(*zip(x_coords, (self.canvas_height / 2 - y_coords)+18), fill=self.normal_fill)
         self.first_frame.configure(bg_color="transparent")
 
 
     def draw_waveform2(self):
         self.second_frame._canvas.delete("all")
         # Draw the waveform
-        self.second_frame._canvas.create_line(*zip(self.x_coords2, (self.canvas_height / 2 - self.y_coords2)+18), fill="#3a7ebf")
+        self.second_frame._canvas.create_line(*zip(self.x_coords2, (self.canvas_height / 2 - self.y_coords2)+18), fill=self.normal_fill)
         self.second_frame.configure(bg_color="transparent")
 
         
     def align_signals(self):
         filenames = [self.filename1, self.filename2, self.srtfilename]
         self.removed_indexes, self.signal_mismatch = align(filenames)
-        self.removed_indexes.append((21,24))
         print("Aligned", self.removed_indexes, self.signal_mismatch)
         self.aligned_text.configure(text="Subtiles Aligned!")
         self.aligned_text2.configure(text="Subtiles Aligned!")
@@ -293,17 +308,17 @@ class App(customtkinter.CTk):
             if len(self.crds["xcrds1"]) == 0:
                 self.crds["xcrds1"], self.crds["ycrds1"], _ = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
             x,y = self.crds["xcrds1"], self.crds["ycrds1"]
-            fill = "#3a7ebf"
+            fill = self.normal_fill
         elif mode == "Removed":
             if len(self.crds["xcrds2"]) == 0:
                 self.crds["xcrds2"], self.crds["ycrds2"], _ = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
             x,y = self.crds["xcrds2"], self.crds["ycrds2"]
-            fill = "#db3737"
+            fill = self.removed_fill
         else:
             if len(self.crds["xcrds3"]) == 0:
                 self.crds["xcrds3"], self.crds["ycrds3"], self.sr = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
             x,y = self.crds["xcrds3"], self.crds["ycrds3"]
-            fill = "#3a7ebf"
+            fill = self.normal_fill
         
         self.second_frame._canvas.delete("all")
         self.second_frame_label.configure(text="Aligned signal:")
@@ -318,7 +333,7 @@ class App(customtkinter.CTk):
                 print(start_index, end_index)
                 segment_x = x[start_index:end_index]
                 segment_y = self.canvas_height / 2 - y[start_index:end_index]
-                self.second_frame._canvas.create_line(*zip(segment_x, segment_y+18), fill="#db3737")
+                self.second_frame._canvas.create_line(*zip(segment_x, segment_y+18), fill=self.removed_fill)
 
         self.second_frame.configure(bg_color="transparent")
 
@@ -330,9 +345,18 @@ class App(customtkinter.CTk):
              
 
     def clear_window(self):
+
+        if self.example_loaded == 0:
+            self.chooseFile_btn1_event()
+            self.chooseFile_btn2_event()
+            self.choose_srtFile_event()
+            self.example_loaded = 1
+            return
+
         self.filename1 = ""
         self.filename2 = ""
         self.srtfilename = ""
+
         self.first_frame_label.configure(text="")
         self.second_frame_label.configure(text="")
         self.aligned_text.configure(text="")
