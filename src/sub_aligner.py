@@ -32,7 +32,7 @@ class App(customtkinter.CTk):
         self.normal_fill = "#3a7ebf"  # dark blue
         
         # load images with light and dark mode image
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../test_images")
+        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../icons")
         self.logo_image = customtkinter.CTkImage(Image.open(os.path.join(image_path, "CustomTkinter_logo_single.png")), size=(26, 26))
         self.mp4_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "mp4add_ico_dark.png")),
                                                 dark_image=Image.open(os.path.join(image_path, "mp4add_ico_light.png")), size=(65, 65))
