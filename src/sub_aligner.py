@@ -9,15 +9,15 @@ from PIL import Image
 from convert import convert
 from align import align
 
-customtkinter.set_default_color_theme("dark-blue")
+customtkinter.set_default_color_theme("green")
 
 class App(customtkinter.CTk):
     def __init__(self):
         super().__init__()
 
         self.title("Subtitle aligner v0.1")
-        self.geometry("1000x600")
- 
+        self.geometry("%dx%d+0+0" % (self.winfo_screenwidth(), self.winfo_screenheight()-60))
+
         # set grid layout 1x2
         self.grid_rowconfigure(0, weight=1)
         self.grid_columnconfigure(1, weight=1)
@@ -29,7 +29,7 @@ class App(customtkinter.CTk):
         self.example_loaded = 0
 
         self.removed_fill = "#db3737" # red
-        self.normal_fill = "#3a7ebf"  # dark blue
+        self.normal_fill = "#2cbe79"  # green
         
         # load images with light and dark mode image
         image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../icons")
@@ -93,6 +93,7 @@ class App(customtkinter.CTk):
         # select default frame
         self.select_frame_by_name(self.switch_mode.get())
         self.init_mainWindow()
+        self.state("zoomed")
 
     
     def init_mainWindow(self):
@@ -133,14 +134,14 @@ class App(customtkinter.CTk):
         self.orig_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
         self.orig_sub.insert("0.0", "Original subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet loaded!")
         self.orig_sub.tag_add("Title", "1.0", "1.20")
-        self.orig_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
+        # self.orig_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
         self.orig_sub.grid(row=0, column=0, padx=10, pady=(10,0), stick="w")
         self.orig_sub.configure(state="disabled")
 
         self.aligned_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), width=390, height=400)
         self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + "\n"*10 + "\t\tSubtitles not yet aligned!")
         self.aligned_sub.tag_add("Title", "1.0", "1.20")
-        self.aligned_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
+        # self.aligned_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
         self.aligned_sub.grid(row=0, column=1, padx=10, pady=(10,0), stick="e")
         self.aligned_sub.configure(state="disabled")
         
@@ -154,7 +155,7 @@ class App(customtkinter.CTk):
         self.aligned_text2.grid(row=2, pady=(0,60), columnspan=2)
 
         self.orig_sub.tag_config("Removed", foreground=self.removed_fill, overstrike=True)
-        
+
         # self.first_frame.grid_rowconfigure(0, weight=1)
         # self.first_frame.grid_columnconfigure(0, weight=1)
         # self.canvas = customtkinter.CTkCanvas(self.first_frame, width=800, height=200, bg="grey20")
