@@ -1,6 +1,6 @@
 1
-00:00:04,600 --> 00:00:11,910
-Prvé čo som si, mám tu nejaké otázky. Okej, takže vy sme mi vlastne povedali, že to má byť nejaká standalone aplikácia najlepšie, že?
+00:00:04,600 --> 00:00:10,000
+Prvé čo som si, mám tu nejaké otázk
 
 4
 00:00:19,670 --> 00:00:20,570
@@ -11,10 +11,12 @@ Jak to mám brať?
 Berte to ak aby to bolo pre uživatela čo najlahšie jo,
 
 6
-00:00:24,120 --> 00:00:31,240
-to znamená, že tam dáte viacero knihoven, tak nejakým jednoduchým spôsobem poskytnite užívateľovi možnosť knihovny získať,
+00:00:24,120 --> 00:00:25,000
+to znamená, že tam dáte viacero knihoven,
+tak nejakým jednoduchým spôsobem poskytnite užívateľovi možnosť k
 
 7
 00:00:26,300 --> 00:00:29,870
-alebo ich tam rovno pribalte, alebo tam dajte nejaké requirements.
+alebo ich tam rovno pribalte,
+alebo tam dajte nejaké requirements.
 

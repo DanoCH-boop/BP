@@ -58,7 +58,8 @@ def align(args):
         cmp_arr = signal1[last1:(last1+signal2.size-last2)] == signal2[last2:]
         mismatch = np.argwhere(cmp_arr==False)[0] if(np.argwhere(cmp_arr==False).size != 0) else -1
 
-        indexes.append((s,e))
+        if s <= e:
+            indexes.append((s,e))
         mismatches.append((start,end))
 
         if(mismatch == -1):

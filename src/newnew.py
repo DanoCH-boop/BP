@@ -1,7 +1,9 @@
 import customtkinter
+import numpy as np
 from tkinter.messagebox import showinfo
 from tkinter.messagebox import Message
 import tkinter as tk
+from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilename
 import os
 from PIL import Image
@@ -13,7 +15,6 @@ import math
 import pysrt
 import sys
 from PIL import Image, ImageTk
-from time import sleep
 
 customtkinter.set_default_color_theme("green")
 
@@ -41,17 +42,19 @@ class App(customtkinter.CTk):
         self.grid_rowconfigure(1, weight=1)
         self.grid_columnconfigure(1, weight=1)
         
+        srtfilename = ""
+        filename1 = ""
+        filename2 = ""
+        fname = ""
+
         # srtfilename = "../example/example.srt"
         # filename1 = "../example/example.wav"
         # filename2 = "../example/example_trim.wav"
 
-        srtfilename = ""
-        filename1 = ""
-        filename2 = ""
-
         self.srtfilename = srtfilename
         self.filename1 = filename1
         self.filename2 = filename2
+        self.fname = fname
 
         self.example_loaded = 1
 
@@ -171,6 +174,9 @@ class App(customtkinter.CTk):
         self.x_coords2 = []
         self.y_coords2 = []
         self.previous_tag2 = None
+        self.selected = None
+        self.previous_tag2A = None
+        self.selectedA = None
         
         # init videos
         self.tkvideo1 = customtkinter.CTkFrame(self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), corner_radius=10, width=140)
@@ -213,50 +219,31 @@ class App(customtkinter.CTk):
         self.seeker2.grid_columnconfigure(1, weight=10)
         self.video2 = "not_setup"
 
-        # initiate first waveform
-        # self.first_frame_label = customtkinter.CTkLabel(self.main_frame, text="first_file.wav")
-        # self.first_frame_label.grid(row=0, column=1, padx=115, pady=(10,0), sticky="w")
-
         self.canvas_height = 250
-        self.canvas_width = 970
-        # self.first_frame = customtkinter.CTkFrame(self.main_frame, corner_radius=10)
-        # self.first_frame._canvas.create_line(0,115,1200,115, fill=self.normal_fill)
-        # self.first_frame.grid(row=0, column=1, padx=10, pady=10, sticky="nsew")
+        self.canvas_width = 954
+        # prepare canvas x coordinates 
+        self.x_coords = np.arange(0,self.canvas_width,0.1)
 
-        self.first_frame = customtkinter.CTkScrollableFrame(master=self.main_frame, orientation="horizontal", fg_color=("#dbdbdb", "#2b2b2b"),
-                                                             corner_radius=10)
+        # setup canvases for waveforms
+        self.first_frame = customtkinter.CTkFrame(master=self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), 
+                                                  corner_radius=10)
         self.first_frame.grid(row=0, column=1, padx=10, pady=(10,0), sticky="nsew")
-        self.first = tk.Canvas(self.first_frame, width=self.canvas_width, height=self.canvas_height, background=("#dbdbdb"),
-                                highlightbackground=("#dbdbdb"))
-        # self.first2 = tk.Canvas(self.first_frame, width=self.canvas_width, height=self.canvas_height, background=("red"),
-                                # highlightbackground=("#dbdbdb"))
-        # self.first.grid(column=0, row=0, sticky="nsew")
-        # self.first2.grid(column=1, row=0, sticky="nsew")
-        # self.first_frame.grid_columnconfigure((0,1), weight=1)
-
-
-        self.first.pack(expand=True, fill="both")
-        # self.first2.pack(expand=True, fill="both")
+        self.first = tk.Canvas(self.first_frame, highlightthickness=0, background=("#dbdbdb"), height=self.canvas_height)
+        self.first_sbar = customtkinter.CTkScrollbar(self.first_frame, orientation="horizontal", command=self.draw_waveform1)
+        self.first.pack(expand=True, fill="both", padx=5, pady=(5,0))
+        self.first_sbar.pack(expand=True, fill="both", padx=5, pady=(0,2))
         self.update()
-        self.first.create_line(0,self.first.winfo_height()/2,self.canvas_width,self.first.winfo_height()/2, fill=self.normal_fill)
-        # self.first2.create_line(0,self.first.winfo_height()/2,self.canvas_width,self.first.winfo_height()/2, fill="red")
+        self.first.create_line(0,self.first.winfo_height()/2, self.canvas_width, self.first.winfo_height()/2, fill=self.normal_fill)
 
-
-        # initiate second waveform
-        # self.second_frame_label = customtkinter.CTkLabel(self.main_frame, text="second_file.wav")
-        # self.second_frame_label.grid(row=2, column=0, padx=115, pady=10, sticky="w")
-
-        # self.second_frame = customtkinter.CTkFrame(self.main_frame, corner_radius=10)
-        # self.second_frame._canvas.create_line(0,115,1200,115, fill=self.normal_fill)
-        # self.second_frame.grid(row=1, column=1, padx=10, pady=0, sticky="nsew")
-        self.second_frame = customtkinter.CTkScrollableFrame(master=self.main_frame, orientation="horizontal", fg_color=("#dbdbdb", "#2b2b2b"),
-                                                              corner_radius=10)
+        self.second_frame = customtkinter.CTkFrame(master=self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), 
+                                                  corner_radius=10)
         self.second_frame.grid(row=2, column=1, padx=10, pady=(5,0), sticky="nsew")
-        self.second = tk.Canvas(self.second_frame, width=self.canvas_width, height=self.canvas_height, background=("#dbdbdb"),
-                                 highlightbackground=("#dbdbdb"))
-        self.second.pack(expand=True, fill="both")
+        self.second = tk.Canvas(self.second_frame, highlightthickness=0, background=("#dbdbdb"), height=self.canvas_height)
+        self.second_sbar = customtkinter.CTkScrollbar(self.second_frame, orientation="horizontal", command=self.draw_waveform2)
+        self.second.pack(expand=True, fill="both", padx=5, pady=(5,0))
+        self.second_sbar.pack(expand=True, fill="both", padx=5, pady=(0,2))
         self.update()
-        self.second.create_line(0,self.second.winfo_height()/2,self.canvas_width,self.second.winfo_height()/2, fill=self.normal_fill)
+        self.second.create_line(0,self.second.winfo_height()/2, self.canvas_width, self.second.winfo_height()/2, fill=self.normal_fill)
         
         # initiate subs frame
         self.orig_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), height=260, wrap="none",
@@ -271,22 +258,14 @@ class App(customtkinter.CTk):
         self.srt_add.place(relx=.5, rely=.5,anchor="c", relwidth=0.5, relheight=0.5)
         self.orig_sub.configure(state="disabled")
 
-        self.aligned_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), height=260,
+        self.aligned_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), height=260, wrap="none",
                                                      font = customtkinter.CTkFont(family="Consolas"))
-        self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + "\n"*8 + "\t\t\t\tSubtitles not yet aligned!")
+        self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + "\n"*6 + "\t\t\t\tSubtitles not yet aligned!")
         self.aligned_sub.tag_add("Title", "1.0", "1.20")
         # self.aligned_sub.tag_config("Title", font=customtkinter.CTkFont(weight="bold", size=16))
         self.aligned_sub.grid(row=0, column=1, padx=10, pady=0, sticky="ew")
         self.aligned_sub.configure(state="disabled")
         
-        # # # initiate "aligned" button
-        # # self.align_button2 = customtkinter.CTkButton(self.subs_frame, text="Align", width=100, height=50,
-        # #                                             font=customtkinter.CTkFont(size=15), command=self.align_signals, state="disabled")
-        # # self.align_button2.grid(row=1, padx=20, pady=0, columnspan=2)
-
-        # # # Initiate "Subtitles Aligned!" label
-        # # self.aligned_text2 = customtkinter.CTkLabel(self.subs_frame, text="")
-        # # self.aligned_text2.grid(row=2, pady=(0,60), columnspan=2)
         self.orig_sub.tag_config("Removed", foreground=self.removed_fill, overstrike=True)
         self.align_button.configure(state="disabled")
 
@@ -309,6 +288,7 @@ class App(customtkinter.CTk):
     #     else:
     #         self.subs_frame.grid_forget()
 
+
     def chooseFile_btn1_event(self):
         previous1 = self.filename1
 
@@ -328,8 +308,9 @@ class App(customtkinter.CTk):
         print(self.filename1)
         if self.filename1.rsplit(".", 1)[1] == "mp4":
             self.video1_setup()
-        x_coords, y_coords, self.sr = convert(self.filename1, self.canvas_width, self.canvas_height)
-        self.draw_waveform1(x_coords, y_coords)
+        _, self.y_coords, self.sr = convert(self.filename1, self.canvas_width, self.canvas_height)
+        self.first_sbar.set(0, 1/(len(self.y_coords)/1000))
+        self.draw_waveform1()
         if self.srtfilename != "":
             self.mark_speech_segments()
         self.check_files()
@@ -351,8 +332,11 @@ class App(customtkinter.CTk):
         # self.select_frame_by_name("WAV")
         # self.second_frame_label.configure(text=self.filename2.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename2)
-        self.video2_setup()
-        self.x_coords2, self.y_coords2,_ = convert(self.filename2, self.canvas_width, self.canvas_height)
+        if self.filename2.rsplit(".", 1)[1] == "mp4":
+            self.video2_setup()
+        
+        _, self.y_coords2,_ = convert(self.filename2, self.canvas_width, self.canvas_height)
+        self.second_sbar.set(0, 1/(len(self.y_coords2)/1000))
         self.draw_waveform2()
         self.check_files()
 
@@ -424,6 +408,23 @@ class App(customtkinter.CTk):
             return
         event.widget.tag_configure(self.previous_tag1, background="")
         event.widget.tag_configure("speech", background="")
+
+    def on_enter_Asub(self, event):
+        index = self.aligned_sub.index("@%s,%s" % (event.x, event.y))
+        tags = self.aligned_sub.tag_names(index)
+        self.previous_tag1A = tags[1]
+        if self.aligned_sub.tag_cget(tags[1], "background") in ("#eab17f","#925827"):
+            return
+        event.widget.tag_configure(tags[1], background="#dbdbdb")
+        if self.appearance_mode_menu.get() == 1:
+            event.widget.tag_configure(tags[1], background="#2b2b2b")
+
+    
+    def on_leave_Asub(self, event):
+        if self.aligned_sub.tag_cget(self.previous_tag1A, "background") in ("#eab17f","#925827"):
+            return
+        event.widget.tag_configure(self.previous_tag1A, background="")
+        event.widget.tag_configure("speech", background="")
         
  
     #https://stackoverflow.com/a/24145562
@@ -431,20 +432,40 @@ class App(customtkinter.CTk):
         index = self.orig_sub.index("@%s,%s" % (event.x, event.y))
         tags = self.orig_sub.tag_names(index)
         sub_index = tags[1]
-        # if the text is highlited by dragging the mouse tags = ("sel", "speech", "id"), we want sub_index = id
+        # if the text is highlighted by dragging the mouse, tag sel is added to tags = ("sel", "speech", "id"), we want sub_index = id
         if sub_index == "speech":
             sub_index = tags[2]
 
-        x1, x2 = self.highlight_selected(sub_index)
-
-        # scroll to segment
-        img_width = x2 - x1
-        x,y = self.first_frame._scrollbar.get()
-        visible_width = (y - x)*self.first.winfo_width() - img_width
-        x_scroll = x1 - visible_width/2
-        self.first_frame._parent_canvas.xview_moveto(x_scroll/self.first.winfo_width())
+        # scroll to selected segment
+        self.selected = sub_index
+        x0, x1 = self.segments[int(sub_index)]
+        img_width = x1 - x0
+        # offset to make the selected segment appear in the middle of the canvas
+        offset = (self.canvas_width - img_width)/2
+        scroll = (x0 - offset)/(len(self.y_coords)/10) 
+        self.first_sbar.set(scroll, scroll)
+        self.highlight_selected(sub_index)
     
 
+    def sub_click_eventA(self, event):                
+        index = self.aligned_sub.index("@%s,%s" % (event.x, event.y))
+        tags = self.aligned_sub.tag_names(index)
+        sub_index = tags[1]
+        # if the text is highlighted by dragging the mouse, tag sel is added to tags = ("sel", "speech", "id"), we want sub_index = id
+        if sub_index == "speech":
+            sub_index = tags[2]
+
+        # scroll to selected segment
+        self.selectedA = sub_index
+        x0, x1 = self.segmentsA[int(sub_index)]
+        img_width = x1 - x0
+        # offset to make the selected segment appear in the middle of the canvas
+        offset = (self.canvas_width - img_width)/2
+        scroll = (x0 - offset)/(len(self.y_coords2)/10) 
+        self.second_sbar.set(scroll, scroll)
+        self.highlight_selectedA(sub_index)
+
+        
     def video1_setup(self):
         bg = "#ebebeb"
         if self.appearance_mode_menu.get() == 1:
@@ -514,36 +535,27 @@ class App(customtkinter.CTk):
         self.play_button1.configure(image=self.play_icon)
 
 
-    def draw_waveform1(self, x_coords, y_coords):
+    def draw_waveform1(self,*args):
+        if self.filename1 == "":
+            return
         self.first.delete("all")
-        width = len(x_coords) / 10
-        print("1",width)
-        print("x", len(x_coords), "y", len(y_coords))
-        # width = math.ceil(width / 100) * 100
-        # print("1",width)
-        # Draw the waveform
-        cap = 31000
-        self.first.configure(width=width)
-
-        limit = math.ceil(width / cap)
-        # for i in range(1, limit+1):
-        #     print("cap", cap*10*(i-1), cap*10*i)
-        #     self.first.create_line(*zip(x_coords[cap*10*(i-1):cap*10*i], (self.canvas_height / 2 - y_coords[cap*10*(i-1):cap*10*i])), fill=self.normal_fill)
-        # self.first.create_line(*zip(x_coords, (self.canvas_height / 2 - y_coords)), fill=self.normal_fill)
-        self.first.create_line(*zip(x_coords, (250 / 2 - y_coords)), fill=self.normal_fill)
-
-
-        # self.first.create_line(*zip(x_coords, (self.canvas_height / 2 - y_coords)), fill=self.normal_fill)
+        l1,_ = self.first_sbar.get()
+        d1 = int(len(self.y_coords) * l1)
+        d2 = d1 + self.canvas_width*10  
+        self.first.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords[d1:d2])), fill=self.normal_fill)
+        if self.srtfilename == "":
+            return
+        self.create_speech_rectangles(d1/10,d2/10)
 
 
     def mark_speech_segments(self):
-        segments = get_speech_segments(self.srtfilename)
-        segments = segments*(self.sr/10)
+        segments =  get_speech_segments(self.srtfilename)
+        self.segments = segments*(self.sr/10)
         self.images = []
-        for id, seg in enumerate(segments):
-            self.create_rectangle(seg[0]*self.sr/10, 0, seg[1]*self.sr/10, self.canvas_height, fill="#ff4f19", alpha=.5, outline="orange",
-                                  tags=("speech", str(id)))
-            
+        for seg in self.segments:
+            self.prepare_images(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5)
+        self.create_speech_rectangles(0, self.canvas_width)
+        # self.create_rectangle(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5, outline="orange", tags=("speech", str(id)))
         self.first.tag_bind("speech", "<Button-1>", self.selected_speech_event)
         print("SIZE OF IMAGES", sys.getsizeof(self.images))
 
@@ -553,32 +565,22 @@ class App(customtkinter.CTk):
         tags = self.first.itemcget(item, "tags")
         id = tags.split(" ")[1]
 
+        self.selected = id
+
         self.highlight_selected(id)
 
         # scroll to subs
         self.orig_sub.see(id+".first")
         line = self.orig_sub.dlineinfo(id+".first")
-        better_offset = 10
+        better_offset = 10 # for better visual
         self.orig_sub.yview_scroll(line[1]-better_offset, 'pixels')
 
 
     def highlight_selected(self, id):
         print("highlighting" + id) 
-        # find selected (image) segment and the previous clicked segment
-        speech_seg = self.first.find_withtag('speech&&'+ id)
-        previous_seg = self.first.find_withtag("selected")
-        # delete previous segment highlighting
-        if len(previous_seg) != 0:
-            # not working, probably because the new item puts itself underneath the original one, so its never the one selected
-            # if previous_seg[0] == speech_seg[0]:
-            #     print("same seg selected",  previous_seg[0], speech_seg[0])
-            #     return
         
-            for prev_seg in previous_seg:
-                self.first.delete(prev_seg)
-        # create new highlighting
-        x1,_,x2,_ = self.first.coords(speech_seg[2])
-        self.create_rectangle(x1, 0, x2, self.canvas_height, fill="#ff4f19", alpha=.5, tags=("speech", id, "selected"), outline="orange")
+        self.draw_waveform1()
+
         # erase previous subtitle highlting
         if self.previous_tag2 != None:
             self.orig_sub.tag_config(self.previous_tag2 , background="")
@@ -588,19 +590,61 @@ class App(customtkinter.CTk):
         if self.appearance_mode_menu.get() == 1:
             self.orig_sub.tag_config(id, background="#925827")
 
-        return x1, x2
 
-
-    def draw_waveform2(self):
+    def draw_waveform2(self, *args):
+        if self.filename2 == "":
+            return
         self.second.delete("all")
-        width = len(self.x_coords2)/10
-        print("2",width)
-        # width = math.ceil(width / 100) * 100
-        # print("2",width)
-        # Draw the waveform
-        self.second.configure(width=width)
-        self.second.create_line(*zip(self.x_coords2, (self.canvas_height / 2 - self.y_coords2)), fill=self.normal_fill)
-        # self.second_frame.configure(bg_color="transparent")
+        l1,_ = self.second_sbar.get()
+        d1 = int(len(self.y_coords2) * l1)
+        d2 = d1 + self.canvas_width*10  
+        self.second.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords2[d1:d2])), fill=self.normal_fill)
+        if self.fname == "":
+            return
+        self.create_speech_rectanglesA(d1/10,d2/10)
+
+
+    def mark_speech_segmentsA(self):
+        segments = get_speech_segments(self.fname)
+        self.segmentsA = segments*(self.sr/10)
+        self.imagesA = []
+        for seg in self.segmentsA:
+            self.prepare_imagesA(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5)
+        self.create_speech_rectanglesA(0, self.canvas_width)
+        # self.create_rectangle(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5, outline="orange", tags=("speech", str(id)))
+        self.second.tag_bind("speech", "<Button-1>", self.selected_speech_eventA)
+        print("SIZE OF IMAGES", sys.getsizeof(self.images))
+
+
+    def selected_speech_eventA(self, event):
+        item = event.widget.find_withtag('current')
+        tags = self.second.itemcget(item, "tags")
+        id = tags.split(" ")[1]
+
+        self.selectedA = id
+
+        self.highlight_selectedA(id)
+
+        # scroll to subs
+        self.aligned_sub.see(id+".first")
+        line = self.aligned_sub.dlineinfo(id+".first")
+        better_offset = 10 # for better visual
+        self.aligned_sub.yview_scroll(line[1]-better_offset, 'pixels')
+
+
+    def highlight_selectedA(self, id):
+        print("highlighting" + id) 
+        
+        self.draw_waveform2()
+
+        # erase previous subtitle highlting
+        if self.previous_tag2A != None:
+            self.aligned_sub.tag_config(self.previous_tag2A , background="")
+        self.previous_tag2A = id
+        # and create new sub highliting
+        self.aligned_sub.tag_config(id, background="#eab17f")
+        if self.appearance_mode_menu.get() == 1:
+            self.aligned_sub.tag_config(id, background="#925827")
 
 
     def align_signals(self):
@@ -614,88 +658,115 @@ class App(customtkinter.CTk):
         # self.align_button2.configure(state="disabled")
         # self.mark_speech_semnets()
         self.out_srt()
+        self.aligned_sub.tag_config("speech")
+        self.aligned_sub.tag_bind("speech", '<Button-1>', self.sub_click_eventA)
+        self.mark_speech_segmentsA()
         self.out_wav(self.mode_switch.get())
 
     
     def out_srt(self):
-        tf = open(self.filename2.rsplit(".", 1)[0] + ".srt", encoding="utf8")
-        out_sub_txt = tf.read()
         self.aligned_sub.configure(state="normal")
         self.aligned_sub.delete("0.0", "end")
-        self.aligned_sub.insert("0.0", "Aligned subtitles:\n\n" + out_sub_txt)
-        self.aligned_sub.tag_add("Title", "1.0", "1.20")
+        self.fname = self.filename2.rsplit(".", 1)[0] + ".srt"
+        self.aligned_sub.insert("0.0", "Aligned subtitles:\n")
+        subs = pysrt.open(self.fname)
+        # reindexes the subs in the right order
+        subs.clean_indexes()
+        index_len = len(str(len(subs)))
+        self.aligned_sub.insert("end", "\n")
+        for sub in subs:
+            if sub.index in (10,100,1000):
+                index_len -= 1
+            num_time_first = ' ' * index_len  + '   '.join(str(sub).split('\n')[:3])
+            sub_width = len(num_time_first)  - len(sub.text.split("\n", 1)[0])
+            other_lines = [' ' * sub_width + line for line in str(sub).splitlines()[3:]]
+            processed_sub = num_time_first + '\n' + '\n'.join(other_lines)
+            if processed_sub[-1] != "\n":
+                processed_sub += "\n"
+            processed_sub += "\n"
+            self.aligned_sub.insert("end", processed_sub, ("speech", str(sub.index-1)))
+            self.aligned_sub.tag_bind(str(sub.index-1), "<Enter>", self.on_enter_Asub)
+            self.aligned_sub.tag_bind(str(sub.index-1), "<Leave>", self.on_leave_Asub)
         self.aligned_sub.configure(state="disabled")
 
         self.orig_sub.configure(state="normal")
         for index in self.removed_indexes:
-            self.orig_sub.tag_add("Removed", str(index[0]+2)+".0", str(index[1]+2)+".0")
+            for id in range(index[0], index[1] + 1):
+                self.orig_sub.tag_config(str(id-1), foreground=self.removed_fill, overstrike=True)
         self.orig_sub.configure(state="disabled")
 
     
     def out_wav(self, mode):
-        # self.third_frame = customtkinter.CTkFrame(self.waves_frame, corner_radius=10, width=600, height=150)
-        # self.third_frame.grid(row=4, column=0, padx=10, pady=(10,10))
 
         if(len(self.signal_mismatch) == 0):
             return
-        
-        # if mode == "Original":
-        #     self.draw_waveform2()
-        #     self.second_frame_label.configure(text=self.filename2.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
-        #     return
-        
-        # self.second_frame_label.configure(text="Aligned signal:")
+    
 
-        # if mode == "Kept":
-        #     if len(self.crds["xcrds1"]) == 0:
-        #         self.crds["xcrds1"], self.crds["ycrds1"], _ = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
-        #     x,y = self.crds["xcrds1"], self.crds["ycrds1"]
-        #     fill = self.normal_fill
-        # elif mode == "Removed":
-        #     if len(self.crds["xcrds2"]) == 0:
-        #         self.crds["xcrds2"], self.crds["ycrds2"], _ = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
-        #     x,y = self.crds["xcrds2"], self.crds["ycrds2"]
-        #     fill = self.removed_fill
-        # else:
-        #     if len(self.crds["xcrds3"]) == 0:
-        #         self.crds["xcrds3"], self.crds["ycrds3"], self.sr = convert(self.filename1, self.canvas_width+200, 300, self.signal_mismatch, mode=mode)
-        #     x,y = self.crds["xcrds3"], self.crds["ycrds3"]
-        #     fill = self.normal_fill
-        
-        # self.second_frame._canvas.delete("all")
-        # self.second_frame_label.configure(text="Aligned signal:")
-        # self.second_frame._canvas.create_line(*zip(x, (self.canvas_height / 2 - y)+18), fill=fill)
+    def prepare_images(self, x1, y1, x2, y2, **kwargs):
+        alpha = int(kwargs.pop('alpha') * 255)
+        fill = kwargs.pop('fill')
+        orange_color = (250, 135, 35)
+        fill = orange_color + (alpha,)
+        image = Image.new('RGBA', (int(x2-x1)+1, int(y2-y1)+1), fill)
+        self.images.append(ImageTk.PhotoImage(image))
 
-        # if mode == "Both":
-        #     for start, end in self.signal_mismatch:
-        #         start_index = int(start * self.sr)
-        #         end_index = int(end * self.sr)
-        #         # start_index = int(start_frame * self.x_scale)
-        #         # end_index = int(end_frame * self.x_scale)
-        #         print(start_index, end_index)
-        #         segment_x = x[start_index:end_index]
-        #         segment_y = self.canvas_height / 2 - y[start_index:end_index]
-        #         self.second_frame._canvas.create_line(*zip(segment_x, segment_y+18), fill=self.removed_fill)
 
-        # self.second_frame.configure(bg_color="transparent")
+    def create_speech_rectangles(self, d1, d2):
+        indices = np.where((d2 >= self.segments[:,0]) & (d1 <=  self.segments[:,1]))[0]
+        # x_coords = self.segments[indices[0]:indices[-1]+1] - d1
+        # images = self.images[indices[0]:indices[-1]+1]
+        y0 = 0
+        y1 = self.canvas_height
+        for id in indices:
+            x = self.segments[id] - d1
+            tags = ("speech", str(id))
+            self.first.create_image(x[0], y0, image=self.images[id], anchor='nw', tags=tags)
+            self.first.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
+                                    font=customtkinter.CTkFont(size=25, weight="bold"))
+            self.first.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
+            if str(id) == self.selected:
+                print("selected", id, self.selected)
+                self.first.create_image(x[0], y0, image=self.images[id], anchor='nw', tags=tags)
+                self.first.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
+                                        font=customtkinter.CTkFont(size=25, weight="bold"))
+                self.first.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
 
+
+    def prepare_imagesA(self, x1, y1, x2, y2, **kwargs):
+        alpha = int(kwargs.pop('alpha') * 255)
+        fill = kwargs.pop('fill')
+        orange_color = (250, 135, 35)
+        fill = orange_color + (alpha,)
+        image = Image.new('RGBA', (int(x2-x1)+1, int(y2-y1)+1), fill)
+        self.imagesA.append(ImageTk.PhotoImage(image))
+
+
+    def create_speech_rectanglesA(self, d1, d2):
+        indices = np.where((d2 >= self.segmentsA[:,0]) & (d1 <=  self.segmentsA[:,1]))[0]
+        # x_coords = self.segments[indices[0]:indices[-1]+1] - d1
+        # images = self.images[indices[0]:indices[-1]+1]
+        y0 = 0
+        y1 = self.canvas_height
+        for id in indices:
+            x = self.segmentsA[id] - d1
+            tags = ("speech", str(id))
+            self.second.create_image(x[0], y0, image=self.imagesA[id], anchor='nw', tags=tags)
+            self.second.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
+                                    font=customtkinter.CTkFont(size=25, weight="bold"))
+            self.second.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
+            if str(id) == self.selectedA:
+                print("selected", id, self.selectedA)
+                self.second.create_image(x[0], y0, image=self.imagesA[id], anchor='nw', tags=tags)
+                self.second.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
+                                        font=customtkinter.CTkFont(size=25, weight="bold"))
+                self.second.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
+           
 
     # https://stackoverflow.com/a/54645103
     def create_rectangle(self, x1, y1, x2, y2, **kwargs):
-        if 'alpha' in kwargs:
-            alpha = int(kwargs.pop('alpha') * 255)
-            fill = kwargs.pop('fill')
-            orange_color = (250, 135, 35)
-            fill = orange_color + (alpha,)
-            image = Image.new('RGBA', (int(x2-x1)+1, int(y2-y1)+1), fill)
-            self.images.append(ImageTk.PhotoImage(image))
-            tags = kwargs["tags"]
-            self.first.create_image(x1, y1, image=self.images[-1], anchor='nw', tags=tags)
-            self.first.create_text(x1+(x2-x1)/2, self.canvas_height/2, text=str(int(tags[1])+1), tags=tags, fill="white",
-                                    font=customtkinter.CTkFont(size=25, weight="bold"))
-        self.first.create_rectangle(x1, y1, x2, y2, **kwargs)
+        tags = kwargs["tags"]
         
-
+        
     def check_files(self):
         if self.srtfilename != "" and self.filename1 != "" and self.filename2 != "":
             self.align_button.configure(state="normal")
@@ -729,6 +800,7 @@ class App(customtkinter.CTk):
             self.second.configure(background="#2b2b2b", highlightbackground="#2b2b2b")
             try:  
                 self.orig_sub.tag_config(self.previous_tag2, background="#925827")
+                self.aligned_sub.tag_config(self.previous_tag2A, background="#925827")
             except:
                 print("subs not yet loaded")
             try:
@@ -741,6 +813,7 @@ class App(customtkinter.CTk):
         self.second.configure(background="#dbdbdb", highlightbackground="#dbdbdb")
         try:   
             self.orig_sub.tag_config(self.previous_tag2, background="#eab17f")
+            self.aligned_sub.tag_config(self.previous_tag2A, background="#eab17f")
         except:
             print("subs not yet loaded")
         try:
