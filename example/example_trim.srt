@@ -1,6 +1,8 @@
 1
 00:00:04,600 --> 00:00:10,000
-Prvé čo som si, mám tu nejaké otázk
+Prvé čo som si, mám tu nejaké otázky.
+Okej, takže vy sme mi vlastne povedali,
+že to má byť nejaká s
 
 4
 00:00:19,670 --> 00:00:20,570
@@ -12,8 +14,7 @@ Berte to ak aby to bolo pre uživatela čo najlahšie jo,
 
 6
 00:00:24,120 --> 00:00:25,000
-to znamená, že tam dáte viacero knihoven,
-tak nejakým jednoduchým spôsobem poskytnite užívateľovi možnosť k
+to znamená, že t
 
 7
 00:00:26,300 --> 00:00:29,870

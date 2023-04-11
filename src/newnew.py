@@ -6,7 +6,6 @@ import tkinter as tk
 from tkinter.filedialog import askopenfilename
 from tkinter.filedialog import askopenfilename
 import os
-from PIL import Image
 from convert import convert
 from align import align
 from speech_segments import get_speech_segments
@@ -15,8 +14,80 @@ import math
 import pysrt
 import sys
 from PIL import Image, ImageTk
+import datetime
+import threading
+from itertools import count, cycle
+from test import align_test
+# import pyautogui
 
 customtkinter.set_default_color_theme("green")
+
+# https://pythonprogramming.altervista.org/animate-gif-in-tkinter/
+class ImageLabel(tk.Label):
+    """
+    A Label that displays images, and plays them if they are gifs
+    :im: A PIL Image instance or a string filename
+    """
+    def load(self, im):
+        if isinstance(im, str):
+            im = Image.open(im)
+        frames = []
+
+        try:
+            for i in count(1):
+                frames.append(ImageTk.PhotoImage(im.copy()))
+                im.seek(i)
+        except EOFError:
+            pass
+        self.frames = cycle(frames)
+
+        try:
+            self.delay = im.info['duration']
+        except:
+            self.delay = 100
+
+        if len(frames) == 1:
+            self.config(image=next(self.frames))
+        else:
+            self.next_frame()
+
+    def unload(self):
+        self.config(image=None)
+        self.frames = None
+
+    def next_frame(self):
+        if self.frames:
+            self.config(image=next(self.frames))
+            self.after(self.delay, self.next_frame)
+
+
+class ToplevelWindow(customtkinter.CTkToplevel):
+    def __init__(self, mode, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        w = 300 # Width 
+        h = 150 # Height
+        # https://coderslegacy.com/tkinter-center-window-on-screen/
+        screen_width = self.winfo_screenwidth()  # Width of the screen
+        screen_height = self.winfo_screenheight() # Height of the screen
+        screen_width, screen_height = 1920, 1080
+        # Calculate Starting X and Y coordinates for Window
+        x = (screen_width/2) - (w/2)
+        y = (screen_height/2) - (h/2)
+
+        self.geometry('%dx%d+%d+%d' % (w, h, x, y))
+
+        bg = "#ebebeb"
+        img = "../icons/loading_light.gif"
+        if mode == 1:
+            bg="#242424"
+            img = "../icons/loading_dark.gif"
+        self.title("Generating waveform")
+        self.label = customtkinter.CTkLabel(self, text="Generating waveform...", font=customtkinter.CTkFont(size=16))
+        self.image = ImageLabel(self, bg=bg)
+        self.label.pack(padx=20, pady=20)
+        self.image.pack(padx=20, pady=(0,20))
+        self.image.load(img)
+
 
 class App(customtkinter.CTk):
     def __init__(self):
@@ -26,6 +97,7 @@ class App(customtkinter.CTk):
         self.geometry("1000x600")
         self.minsize(1000,600)
         # self.geometry("%dx%d+0+0" % (self.winfo_screenwidth(), self.winfo_screenheight()-60))
+        self.toplevel_window = None
 
         # color map
         self.cm = {
@@ -72,7 +144,6 @@ class App(customtkinter.CTk):
         self.play_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "play_button.png")), size=(20, 20))
         self.pause_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "pause_button.png")), size=(20, 20))
 
-
         # create navigation frame
         self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
@@ -108,7 +179,7 @@ class App(customtkinter.CTk):
 
         #initiate "aligned" button
         self.align_button = customtkinter.CTkButton(self.sidebar_frame, text="Align", width=100, height=40,
-                                                    font=customtkinter.CTkFont(size=15), command=self.align_signals, state="disabled")
+                                                    font=customtkinter.CTkFont(size=15), command=self.align_event, state="disabled")
         self.align_button.grid(row=6, column=0, pady=10)
 
         # Initiate "Subtitles Aligned!" label
@@ -123,43 +194,18 @@ class App(customtkinter.CTk):
                                                             switch_height=15, switch_width=35)
         self.appearance_mode_menu.grid(row=9, column=0, padx=20, pady=(10,20), sticky="s")
 
-        # self.rowconfigure(0, weight=3)
-        # self.rowconfigure(1, weight=2)
-
         # create main frame
         self.main_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.main_frame.grid(row=0, column=1, sticky="nsew", pady=0, padx=0)
         self.main_frame.columnconfigure(1, weight=3)
         self.main_frame.columnconfigure(0, weight=2)
-        # self.rowconfigure(0, weight=1)
-        # self.rowconfigure(1, weight=1)
         
-        # # create video frame
-        # self.video_frame = customtkinter.CTkFrame(self.main_frame, corner_radius=0, fg_color="blue")
-        # self.video_frame.grid(row=0, column=0)
-
-        # # create wave frame
-        # self.waves_frame = customtkinter.CTkFrame(self.main_frame, corner_radius=0, fg_color="orange")
-        # self.waves_frame.grid(row=0, column=1)
-
         # create subs frame
         self.subs_frame = customtkinter.CTkFrame(self, corner_radius=0, fg_color="transparent")
         self.subs_frame.grid(row=1, column=1, sticky="sew", pady=(0,5), padx=0)
         self.subs_frame.grid_rowconfigure(0, weight=1)
         self.subs_frame.grid_columnconfigure(0, weight=1)
         self.subs_frame.grid_columnconfigure(1, weight=1)
-
-        # self.tkvideo1 = TkinterVideo(master=self.main_frame, background=("#ebebeb"))
-        # self.tkvideo1.load(r"C:\Users\pewdi\Desktop\BP\media\Lotr_Rotk_1.mp4")
-        # self.tkvideo1.grid(row=0, column=0, sticky="nsew", pady=(10,0), padx=0)
-        # self.tkvideo1.set_size((600, 450)) # sets the frame size
-        # self.tkvideo1.play() # play the video
-
-        # self.tkvideo2 = TkinterVideo(master=self.main_frame, background=("#ebebeb"))
-        # self.tkvideo2.load(r"C:\Users\pewdi\Desktop\BP\media\Lotr_Rotk_1.mp4")
-        # self.tkvideo2.grid(row=1, column=0, sticky="nsew", pady=10, padx=0)
-        # self.tkvideo2.set_size((600, 450)) # sets the frame size
-        # self.tkvideo2.play() # play the video
 
         # select default frame
         # self.select_frame_by_name(self.switch_mode.get())
@@ -168,16 +214,19 @@ class App(customtkinter.CTk):
 
     
     def init_mainWindow(self):
-
-        self.crds = {"xcrds1": [], "ycrds1": [], "xcrds2": [], "ycrds2": [], "xcrds3": [], "ycrds3": []}
-        self.signal_mismatch = []
-        self.x_coords2 = []
+        self.canvas_height = 250
+        self.canvas_width = 915
+        self.signal_mismatch = np.array([])
+        self.removed_indexes = []
+        self.x_coords = np.arange(0,self.canvas_width,0.1)
+        self.y_coords = []
         self.y_coords2 = []
         self.previous_tag2 = None
         self.selected = None
         self.previous_tag2A = None
         self.selectedA = None
-        
+        self.offset = 0
+
         # init videos
         self.tkvideo1 = customtkinter.CTkFrame(self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), corner_radius=10, width=140)
         self.tkvideo1.grid(row=0, column=0, sticky="nsew", pady=(10,0), padx=(10,0))
@@ -194,9 +243,12 @@ class App(customtkinter.CTk):
                                                      hover_color=("gray70", "gray30"),
                                                      command=self.play_pause1, width=28)
         self.play_button1.configure(state="disabled")
+        self.end_time1 = customtkinter.CTkLabel(self.seeker1, text="00:00:00")
+        self.end_time1.grid(row=0, column=2, pady=(2,2))
+
         self.slider1.grid(row=0, column=1, sticky="ew", pady=(2,2))
         self.play_button1.grid(row=0, column=0, sticky="nsew", padx=(3,3), pady=(2,2))
-        self.seeker1.grid_columnconfigure(1, weight=10)
+        self.seeker1.grid_columnconfigure(1, weight=8)
         self.video1 = "not_setup"
 
         self.tkvideo2 = customtkinter.CTkFrame(self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), corner_radius=10, width=140)
@@ -207,22 +259,19 @@ class App(customtkinter.CTk):
         self.addvid2.pack(fill="both", expand=True, padx=2, pady=2)
         self.seeker2 = customtkinter.CTkFrame(self.main_frame, fg_color="transparent", corner_radius=10, width=140, height=28)
         self.seeker2.grid(row=3, column=0, sticky="nsew", pady=(0,10), padx=(10,0))
-        self.slider2 = customtkinter.CTkSlider(self.seeker2, from_=0, to=1, command=self.seek1, height=15)
+        self.slider2 = customtkinter.CTkSlider(self.seeker2, from_=0, to=1, command=self.seek2, height=15)
         self.slider2.set(0)
         self.slider2.configure(state="disabled")
         self.play_button2 = customtkinter.CTkButton(self.seeker2, image=self.play_icon, text="", fg_color="transparent",
                                                      hover_color=("gray70", "gray30"),
-                                                     command=self.play_pause1, width=28)
+                                                     command=self.play_pause2, width=28)
         self.play_button2.configure(state="disabled")
+        self.end_time2 = customtkinter.CTkLabel(self.seeker2, text="00:00:00")
+        self.end_time2.grid(row=0, column=2, pady=(2,2))
         self.slider2.grid(row=0, column=1, sticky="ew", pady=(2,2))
         self.play_button2.grid(row=0, column=0, sticky="nsew", padx=(3,3), pady=(2,2))
-        self.seeker2.grid_columnconfigure(1, weight=10)
+        self.seeker2.grid_columnconfigure(1, weight=8)
         self.video2 = "not_setup"
-
-        self.canvas_height = 250
-        self.canvas_width = 954
-        # prepare canvas x coordinates 
-        self.x_coords = np.arange(0,self.canvas_width,0.1)
 
         # setup canvases for waveforms
         self.first_frame = customtkinter.CTkFrame(master=self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), 
@@ -244,7 +293,7 @@ class App(customtkinter.CTk):
         self.second_sbar.pack(expand=True, fill="both", padx=5, pady=(0,2))
         self.update()
         self.second.create_line(0,self.second.winfo_height()/2, self.canvas_width, self.second.winfo_height()/2, fill=self.normal_fill)
-        
+
         # initiate subs frame
         self.orig_sub = customtkinter.CTkTextbox(self.subs_frame, corner_radius=10, text_color=("gray10", "gray90"), height=260, wrap="none",
                                                  font = customtkinter.CTkFont(family="Consolas"))
@@ -289,6 +338,46 @@ class App(customtkinter.CTk):
     #         self.subs_frame.grid_forget()
 
 
+    def _bound_to_mousewheel(self, event):
+        self.bind_all("<MouseWheel>", self._on_mousewheel)
+
+    def _unbound_to_mousewheel(self, event):
+        self.unbind_all("<MouseWheel>")
+
+
+    def _on_mousewheel(self, event):
+        if event.widget.winfo_id() == self.first.winfo_id():
+            widget = self.first_sbar
+            func = self.draw_waveform1
+        elif event.widget.winfo_id() == self.second.winfo_id():
+            widget = self.second_sbar
+            func = self.draw_waveform2
+        x,_ = widget.get()
+        offset = -1*(event.delta/120) * 0.01
+        scroll = x+offset
+        if scroll < 0 or scroll > 1:
+            if scroll < 0:
+                widget.set(0, 0)
+            else:
+                widget.set(1, 1)
+            func()
+            return
+        widget.set(scroll, scroll)
+        func()
+
+
+    def window_handler(self, func):
+        self.toplevel_window = ToplevelWindow(mode=self.appearance_mode_menu.get())
+        self.toplevel_window.focus()   
+        # start a new thread to run the event handling code
+        t = threading.Thread(target=func)
+        t.daemon = True
+        t.start()
+
+        # wait for the window to be destroyed before continuing
+        self.toplevel_window.wait_window()
+
+
     def chooseFile_btn1_event(self):
         previous1 = self.filename1
 
@@ -306,16 +395,23 @@ class App(customtkinter.CTk):
         # self.select_frame_by_name("WAV")
         # self.first_frame_label.configure(text=self.filename1.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename1)
+        self.window_handler(self.generating_waveform1)
+        
+        
+    def generating_waveform1(self):
         if self.filename1.rsplit(".", 1)[1] == "mp4":
             self.video1_setup()
+        self.toplevel_window.focus()
         _, self.y_coords, self.sr = convert(self.filename1, self.canvas_width, self.canvas_height)
         self.first_sbar.set(0, 1/(len(self.y_coords)/1000))
         self.draw_waveform1()
         if self.srtfilename != "":
             self.mark_speech_segments()
         self.check_files()
-        
-        
+        self.first.bind('<Enter>', self._bound_to_mousewheel)
+        self.first.bind('<Leave>', self._unbound_to_mousewheel)
+        self.toplevel_window.destroy()
+
     def chooseFile_btn2_event(self):
         previous2 = self.filename2
 
@@ -332,14 +428,19 @@ class App(customtkinter.CTk):
         # self.select_frame_by_name("WAV")
         # self.second_frame_label.configure(text=self.filename2.rsplit(".", 1)[0].rsplit("/", 1)[-1]+".wav")
         print(self.filename2)
+        self.window_handler(self.generating_waveform2)
+
+    def generating_waveform2(self):
         if self.filename2.rsplit(".", 1)[1] == "mp4":
             self.video2_setup()
-        
+        self.toplevel_window.focus()
         _, self.y_coords2,_ = convert(self.filename2, self.canvas_width, self.canvas_height)
         self.second_sbar.set(0, 1/(len(self.y_coords2)/1000))
         self.draw_waveform2()
         self.check_files()
-
+        self.second.bind('<Enter>', self._bound_to_mousewheel)
+        self.second.bind('<Leave>', self._unbound_to_mousewheel)
+        self.toplevel_window.destroy()
 
     def choose_srtFile_event(self):
         previousSrt = self.srtfilename
@@ -467,9 +568,11 @@ class App(customtkinter.CTk):
 
         
     def video1_setup(self):
-        bg = "#ebebeb"
+        bg = self.cm["fr_bg_l"]
+        fg = "black"
         if self.appearance_mode_menu.get() == 1:
-            bg = "#242424"
+            bg = self.cm["fr_bg_d"]
+            fg = "white"
         self.play_button1.configure(state="normal")
         self.slider1.configure(state="normal")
         self.slider1.set(0)
@@ -477,32 +580,54 @@ class App(customtkinter.CTk):
         self.addvid1.pack_forget()
         if self.video1 != "not_setup":
             self.video1.pack_forget()
-        self.video1 = TkinterVideo(master=self.tkvideo1, background=bg, text="Click play to play video!", font=customtkinter.CTkFont(size=20))
+        self.video1 = TkinterVideo(master=self.tkvideo1, fg=fg, background=bg, text="Click play to play video!",
+                                    font=customtkinter.CTkFont(size=20), keep_aspect=True)
         self.video1.load(self.filename1)
-        self.video1.pack(fill="both", expand=True) 
+        self.video1.pack(fill="both", expand=True, padx=4, pady=2) 
         # self.video1.set_size((600, 450)) # sets the frame size
-        self.video1.bind("<<Duration>>", self.update_duration)
-        self.video1.bind("<<SecondChanged>>", self.update_slider)
-        self.video1.bind("<<Ended>>", self.video_ended)
+        self.video1.bind("<<Duration>>", self.update_duration1)
+        self.video1.bind("<<SecondChanged>>", self.update_slider1)
+        self.video1.bind("<<Ended>>", self.video_ended1)
 
 
     def video2_setup(self):
-        bg = "#ebebeb"
+        bg = self.cm["fr_bg_l"]
+        fg = "black"
         if self.appearance_mode_menu.get() == 1:
-            bg = "#242424"
-        self.tkvideo2 = TkinterVideo(master=self.main_frame, background=bg)
-        self.tkvideo2.load(self.filename2)
-        self.tkvideo2.grid(row=1, column=0, sticky="nsew", pady=10, padx=0)
-        self.tkvideo2.set_size((600, 450)) # sets the frame size
-        self.tkvideo2.play() # play the video
+            bg = self.cm["fr_bg_d"]
+            fg = "white"
+        self.play_button2.configure(state="normal")
+        self.slider2.configure(state="normal")
+        self.slider2.set(0)
+        self.play_button2.configure(image=self.play_icon)
+        self.addvid2.pack_forget()
+        if self.video2 != "not_setup":
+            self.video2.pack_forget()
+        self.video2 = TkinterVideo(master=self.tkvideo2, fg=fg, background=bg, text="Click play to play video!",
+                                    font=customtkinter.CTkFont(size=20), keep_aspect=True)
+        self.video2.load(self.filename2)
+        self.video2.pack(fill="both", expand=True, padx=4, pady=2) 
+        # self.video1.set_size((600, 450)) # sets the frame size
+        self.video2.bind("<<Duration>>", self.update_duration2)
+        self.video2.bind("<<SecondChanged>>", self.update_slider2)
+        self.video2.bind("<<Ended>>", self.video_ended2)
 
 
-    def update_duration(self, event):
+    def update_duration1(self, event):
         """ updates the duration after finding the duration """
         print("here1")
         duration = self.video1.video_info()["duration"]
-        # end_time["text"] = str(datetime.timedelta(seconds=duration))
+        self.end_time1.configure(text=str(datetime.timedelta(seconds=duration)).rsplit(".")[0])
         self.slider1.configure(to=duration)
+        print(duration)
+
+
+    def update_duration2(self, event):
+        """ updates the duration after finding the duration """
+        print("here1")
+        duration = self.video2.video_info()["duration"]
+        self.end_time2.configure(text=str(datetime.timedelta(seconds=duration)).rsplit(".")[0])
+        self.slider2.configure(to=duration)
         print(duration)
 
 
@@ -512,6 +637,14 @@ class App(customtkinter.CTk):
         if self.video1.is_paused():
             self.video1.play()
             self.video1.pause()
+
+
+    def seek2(self, val):
+        print("seeked to:", int(val))
+        self.video2.seek(math.ceil(val))
+        if self.video2.is_paused():
+            self.video2.play()
+            self.video2.pause()
         
 
     def play_pause1(self):
@@ -523,16 +656,39 @@ class App(customtkinter.CTk):
         print("not paused")
         self.video1.pause()
         self.play_button1.configure(image=self.play_icon)
+    
+
+    def play_pause2(self):
+        if self.video2.is_paused():
+            print("paused")
+            self.video2.play()
+            self.play_button2.configure(image=self.pause_icon)
+            return
+        print("not paused")
+        self.video2.pause()
+        self.play_button2.configure(image=self.play_icon)
 
     
-    def update_slider(self, event):
-        print(self.video1.current_duration())
-        self.slider1.set(self.video1.current_duration())
+    def update_slider1(self, event):
+        dur = self.video1.current_duration()
+        self.slider1.set(dur)
+        self.end_time1.configure(text=str(datetime.timedelta(seconds=dur)).rsplit(".")[0])
+
+    
+    def update_slider2(self, event):
+        dur = self.video2.current_duration()
+        self.slider2.set(dur)
+        self.end_time2.configure(text=str(datetime.timedelta(seconds=dur)).rsplit(".")[0])
 
 
-    def video_ended (self, event):
+    def video_ended1(self, event):
         self.slider1.set(0)
         self.play_button1.configure(image=self.play_icon)
+    
+
+    def video_ended2(self, event):
+        self.slider2.set(0)
+        self.play_button2.configure(image=self.play_icon)
 
 
     def draw_waveform1(self,*args):
@@ -541,8 +697,19 @@ class App(customtkinter.CTk):
         self.first.delete("all")
         l1,_ = self.first_sbar.get()
         d1 = int(len(self.y_coords) * l1)
-        d2 = d1 + self.canvas_width*10  
+        d2 = d1 + self.canvas_width*10
         self.first.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords[d1:d2])), fill=self.normal_fill)
+        # if len(self.signal_mismatch) != 0:
+        #     rem = self.signal_mismatch - d1/10
+        #     # Set any negative values in the first column to 0
+        #     rem[:, 0] = np.maximum(rem[:, 0], 0)
+        #     # Identify the indices of any subarrays where the first element is greater than 10000 or the second element is negative
+        #     indices_to_remove = np.logical_or(rem[:, 0] > 1000, rem[:, 1] < 0)
+        #     # Remove those subarrays from x
+        #     rem = rem[~indices_to_remove]
+        #     for r in rem:
+        #         x = np.arange(r[0], r[1], 0.1)
+        #         self.first.create_line(*zip(x, (self.canvas_height / 2 - self.y_coords[int(d1+r[0]*10):int(d1+r[1]*10)])), fill=self.removed_fill)
         if self.srtfilename == "":
             return
         self.create_speech_rectangles(d1/10,d2/10)
@@ -567,19 +734,38 @@ class App(customtkinter.CTk):
 
         self.selected = id
 
+        # scroll to deleted
+        try:
+            print("id", int(id)+1)
+            print(self.grouped)
+            index = np.where([int(id)+1 in subarr for subarr in self.grouped])[0]
+            print("index", self.signal_mismatch[index])
+            offset = self.canvas_width/2 * 10
+            scroll = (self.signal_mismatch[index] - offset) / len(self.y_coords2)
+            print("scroll", scroll)
+            self.second_sbar.set(scroll, scroll)
+            self.draw_waveform2()
+        except:
+            pass
+        
         self.highlight_selected(id)
 
         # scroll to subs
         self.orig_sub.see(id+".first")
         line = self.orig_sub.dlineinfo(id+".first")
         better_offset = 10 # for better visual
-        self.orig_sub.yview_scroll(line[1]-better_offset, 'pixels')
+        self.orig_sub.yview_scroll(line[1]-better_offset, 'pixels')        
 
 
     def highlight_selected(self, id):
         print("highlighting" + id) 
         
         self.draw_waveform1()
+
+        # seek in video
+        x0, _ = self.segments[int(id)]
+        if self.video1 != "not_setup":
+            self.seek1(x0*10/self.sr)
 
         # erase previous subtitle highlting
         if self.previous_tag2 != None:
@@ -597,7 +783,11 @@ class App(customtkinter.CTk):
         self.second.delete("all")
         l1,_ = self.second_sbar.get()
         d1 = int(len(self.y_coords2) * l1)
-        d2 = d1 + self.canvas_width*10  
+        d2 = d1 + self.canvas_width*10
+        indices = np.where((d2 >= self.signal_mismatch) & (d1 <=  self.signal_mismatch))[0]
+        for i in indices:
+            x = (self.signal_mismatch[i] - d1)/10
+            self.second.create_rectangle(x, 0, x+5, self.canvas_height, fill=self.removed_fill, outline=self.removed_fill)
         self.second.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords2[d1:d2])), fill=self.normal_fill)
         if self.fname == "":
             return
@@ -636,6 +826,11 @@ class App(customtkinter.CTk):
         print("highlighting" + id) 
         
         self.draw_waveform2()
+        
+        # seek in video
+        x0, _ = self.segmentsA[int(id)]
+        if self.video2 != "not_setup":
+            self.seek2(x0*10/self.sr)
 
         # erase previous subtitle highlting
         if self.previous_tag2A != None:
@@ -646,24 +841,38 @@ class App(customtkinter.CTk):
         if self.appearance_mode_menu.get() == 1:
             self.aligned_sub.tag_config(id, background="#925827")
 
+    def align_event(self):
+        # create a new window
+        self.toplevel_window = ToplevelWindow(self.appearance_mode_menu.get())
+        self.toplevel_window.label.configure(text="Aligning signals...")
+        # start a new thread to run the event handling code
+        t = threading.Thread(target=self.align_signals)
+        t.start()
+    
+        # wait for the window to be destroyed before continuing
+        self.toplevel_window.wait_window()
+
 
     def align_signals(self):
+        self.toplevel_window.focus()
         filenames = [self.filename1, self.filename2, self.srtfilename]
-        self.removed_indexes, self.signal_mismatch = align(filenames)
-        print("Aligned", self.removed_indexes, self.signal_mismatch)
+        self.removed_indexes, self.signal_mismatch, self.grouped = align(filenames)
+        # self.removed_indexes, self.signal_mismatch = align_test()
+        self.signal_mismatch = np.array(self.signal_mismatch)
+        self.signal_mismatch = self.signal_mismatch * self.sr
+        # print("Aligned", self.removed_indexes, self.signal_mismatch)
         self.aligned_text.configure(text="Subtiles Aligned!")
-        # self.aligned_text2.configure(text="Subtiles Aligned!")
         # showinfo("Dialog", "Subtitles Aligned!")
         self.align_button.configure(state="disabled")
-        # self.align_button2.configure(state="disabled")
-        # self.mark_speech_semnets()
         self.out_srt()
         self.aligned_sub.tag_config("speech")
         self.aligned_sub.tag_bind("speech", '<Button-1>', self.sub_click_eventA)
         self.mark_speech_segmentsA()
         self.out_wav(self.mode_switch.get())
+        # close the window
+        self.toplevel_window.destroy()
 
-    
+
     def out_srt(self):
         self.aligned_sub.configure(state="normal")
         self.aligned_sub.delete("0.0", "end")
@@ -690,17 +899,27 @@ class App(customtkinter.CTk):
         self.aligned_sub.configure(state="disabled")
 
         self.orig_sub.configure(state="normal")
-        for index in self.removed_indexes:
-            for id in range(index[0], index[1] + 1):
-                self.orig_sub.tag_config(str(id-1), foreground=self.removed_fill, overstrike=True)
+        for id in self.removed_indexes:
+            self.orig_sub.tag_config(str(id-1), foreground=self.removed_fill, overstrike=True)
         self.orig_sub.configure(state="disabled")
 
     
     def out_wav(self, mode):
-
         if(len(self.signal_mismatch) == 0):
             return
+        self.prepare_removed_images()
+        self.draw_waveform1()
+        self.draw_waveform2()
     
+
+    def prepare_removed_images(self):
+        for id in self.removed_indexes:
+            w = self.images[id-1].width()
+            h = self.images[id-1].height()
+            red_color = (219, 55, 55, 127)
+            image = Image.new('RGBA', (w, h), red_color)
+            self.images[id-1] = ImageTk.PhotoImage(image)
+
 
     def prepare_images(self, x1, y1, x2, y2, **kwargs):
         alpha = int(kwargs.pop('alpha') * 255)
@@ -718,18 +937,20 @@ class App(customtkinter.CTk):
         y0 = 0
         y1 = self.canvas_height
         for id in indices:
+            outline="orange"
+            if id+1 in self.removed_indexes:
+                outline = "red"
             x = self.segments[id] - d1
             tags = ("speech", str(id))
             self.first.create_image(x[0], y0, image=self.images[id], anchor='nw', tags=tags)
             self.first.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
                                     font=customtkinter.CTkFont(size=25, weight="bold"))
-            self.first.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
+            self.first.create_rectangle(x[0], y0, x[1], y1, outline=outline, tags=tags)
             if str(id) == self.selected:
-                print("selected", id, self.selected)
                 self.first.create_image(x[0], y0, image=self.images[id], anchor='nw', tags=tags)
                 self.first.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
                                         font=customtkinter.CTkFont(size=25, weight="bold"))
-                self.first.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
+                self.first.create_rectangle(x[0], y0, x[1], y1, outline=outline, tags=tags)
 
 
     def prepare_imagesA(self, x1, y1, x2, y2, **kwargs):
@@ -755,7 +976,6 @@ class App(customtkinter.CTk):
                                     font=customtkinter.CTkFont(size=25, weight="bold"))
             self.second.create_rectangle(x[0], y0, x[1], y1, outline="orange", tags=tags)
             if str(id) == self.selectedA:
-                print("selected", id, self.selectedA)
                 self.second.create_image(x[0], y0, image=self.imagesA[id], anchor='nw', tags=tags)
                 self.second.create_text(x[0]+(x[1]-x[0])/2, y1/2, text=str(int(tags[1])+1), tags=tags, fill="white",
                                         font=customtkinter.CTkFont(size=25, weight="bold"))
@@ -804,8 +1024,8 @@ class App(customtkinter.CTk):
             except:
                 print("subs not yet loaded")
             try:
-                self.tkvideo1.configure(background="#242424", highlightbackground="#242424")
-                self.tkvideo2.configure(background="#242424", highlightbackground="#242424")
+                self.video1.configure(background=self.cm["fr_bg_d"], fg="white")
+                self.video2.configure(background=self.cm["fr_bg_d"], fg="white")
             finally:
                 return
         customtkinter.set_appearance_mode("light")
@@ -817,11 +1037,12 @@ class App(customtkinter.CTk):
         except:
             print("subs not yet loaded")
         try:
-            self.tkvideo1.configure(background="#ebebeb", highlightbackground="#ebebeb")
-            self.tkvideo2.configure(background="#ebebeb", highlightbackground="#ebebeb")
+            self.video1.configure(background=self.cm["fr_bg_l"], fg="black")
+            self.video2.configure(background=self.cm["fr_bg_l"], fg="black")
         finally:
             return
 
 if __name__ == "__main__":
     app = App()
     app.mainloop()
+    sys.exit()

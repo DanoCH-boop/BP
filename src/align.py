@@ -50,7 +50,7 @@ def align(args):
         print("Peak", np.argmax(c)/sr1)
         peak = int(np.argmax(c)) + last1
         print("Peak + last1:", peak/sr1)
-
+        # mismatches.append((last1/sr1, peak/sr1))
         s, e, start, end = sub_edit(last1/sr1, peak/sr1, args, mode, offset)
         offset += np.argmax(c)/sr1
         last1 = int(peak)
@@ -60,7 +60,8 @@ def align(args):
 
         if s <= e:
             indexes.append((s,e))
-        mismatches.append((start,end))
+        mismatches.append(start)
+
 
         if(mismatch == -1):
             break
@@ -68,5 +69,18 @@ def align(args):
 
         last1 += int(mismatch)
         last2 += int(mismatch)
-        
-    return indexes, mismatches
+    
+    removed_indexes = []
+    grouped_ri = []
+    for id in indexes:
+        help = []
+        for i in range(id[0], id[1] + 1):
+            removed_indexes.append(i)
+            help.append(i)
+        grouped_ri.append(help)
+
+    indexes = np.array(removed_indexes, dtype=int)
+    grouped_ri = np.array(grouped_ri, dtype=int)
+    print(grouped_ri)
+
+    return indexes, mismatches, grouped_ri
