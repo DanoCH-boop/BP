@@ -1,7 +1,7 @@
 import numpy as np
 import librosa
 import pysrt
-from sub_edit import sub_edit
+from backend.sub_edit import sub_edit
 from scipy import signal as sig
 import os
 

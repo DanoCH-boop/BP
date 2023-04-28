@@ -10,10 +10,10 @@ from misc.speech_segments import get_speech_segments
 import sys
 from PIL import Image, ImageTk
 import threading
-from components.toplevel import ToplevelWindow
-from components.videoplayer import VideoPlayer
-from components.subtitles import SubClass
-from components.waveform import Waveform
+from frontend.components.toplevel import ToplevelWindow
+from frontend.components.videoplayer import VideoPlayer
+from frontend.components.subtitles import SubClass
+from frontend.components.waveform import Waveform
 
 customtkinter.set_default_color_theme("green")
 
@@ -63,19 +63,20 @@ class App(customtkinter.CTk):
         self.normal_fill = "#2cbe79"  # green
 
         # load images with light and dark mode image
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../icons")
-        self.mp4_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "mp4add_ico_dark.png")),
-                                               dark_image=Image.open(os.path.join(image_path, "mp4add_ico_light.png")),
+        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "..\icons")
+        print(image_path)
+        self.mp4_icon = customtkinter.CTkImage(light_image=Image.open("../icons/mp4add_ico_dark.png"),
+                                               dark_image=Image.open("../icons/mp4add_ico_light.png"),
                                                size=(65, 65))
-        self.srt_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "srtadd_ico_dark.png")),
-                                               dark_image=Image.open(os.path.join(image_path, "srtadd_ico_light.png")),
+        self.srt_icon = customtkinter.CTkImage(light_image=Image.open("../icons/srtadd_ico_dark.png"),
+                                               dark_image=Image.open("../icons/srtadd_ico_light.png"),
                                                size=(65, 65))
-        self.add_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "add_dark.png")),
-                                               dark_image=Image.open(os.path.join(image_path, "add_light.png")),
+        self.add_icon = customtkinter.CTkImage(light_image=Image.open("../icons/add_dark.png"),
+                                               dark_image=Image.open("../icons/add_light.png"),
                                                size=(50, 50))
-        self.play_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "play_button.png")),
+        self.play_icon = customtkinter.CTkImage(light_image=Image.open("../icons/play_button.png"),
                                                 size=(20, 20))
-        self.pause_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "pause_button.png")),
+        self.pause_icon = customtkinter.CTkImage(light_image=Image.open("../icons/pause_button.png"),
                                                  size=(20, 20))
 
         # create menu frame
@@ -201,15 +202,15 @@ class App(customtkinter.CTk):
         self.align_button.configure(state="disabled")
 
     def _bound_to_mousewheel(self, event):
-        """Binds the _on_mousewheel function to the <MouseWheel> event."""
+        """Binds the _on_mousewheel function to the <MouseWheel> scrolling event."""
         self.bind_all("<MouseWheel>", self._on_mousewheel)
 
     def _unbound_to_mousewheel(self, event):
-        """Unbinds the _on_mousewheel function from the <MouseWheel> event."""
+        """Unbinds the _on_mousewheel function from the <MouseWheel> scrolling event."""
         self.unbind_all("<MouseWheel>")
 
     def _on_mousewheel(self, event):
-        """Scrolls the waveform canvas in response to mousewheel events.
+        """Scrolls the waveform canvas in response to mousewheel scroll.
         Determines which canvas widget was scrolled, then adjusts the scrollbar and redraws the waveform.
         """
         if event.widget.winfo_id() == self.first_frame.canvas.winfo_id():

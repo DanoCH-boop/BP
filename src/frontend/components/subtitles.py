@@ -2,6 +2,7 @@ import customtkinter
 import pysrt
 from misc.process_sub import process_sub
 
+
 class SubClass(customtkinter.CTkTextbox):
     def __init__(self, *args, mode, appr, **kwargs):
         super().__init__(*args, **kwargs)
@@ -35,6 +36,8 @@ class SubClass(customtkinter.CTkTextbox):
         index_len = len(str(len(subs)))
         self.insert("end", "\n")
         for sub in subs:
+            if sub.index in (10, 100, 1000):
+                index_len -= 1
             processed_sub = process_sub(sub, index_len)
             self.insert("end", processed_sub, ("speech", str(sub.index - 1)))
             self.tag_bind(str(sub.index - 1), "<Enter>", self.on_enter_sub)

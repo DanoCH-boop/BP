@@ -1,8 +1,6 @@
 
-def process_sub(self, sub, index_len):
+def process_sub(sub, index_len):
     """Processes a subtitle to a column format"""
-    if sub.index in (10, 100, 1000):
-            index_len -= 1
     num_time_first = ' ' * index_len + '   '.join(str(sub).split('\n')[:3])
     sub_width = len(num_time_first) - len(sub.text.split("\n", 1)[0])
     other_lines = [' ' * sub_width + line for line in str(sub).splitlines()[3:]]

@@ -20,13 +20,12 @@ class VideoPlayer(customtkinter.CTkFrame):
         if self.rw == 3:
             self.pady = (0, 10)
 
-        image_path = os.path.join(os.path.dirname(os.path.realpath(__file__)), "../icons")
-        self.add_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "add_dark.png")),
-                                               dark_image=Image.open(os.path.join(image_path, "add_light.png")),
+        self.add_icon = customtkinter.CTkImage(light_image=Image.open("../icons/add_dark.png"),
+                                               dark_image=Image.open("../icons/add_light.png"),
                                                size=(50, 50))
-        self.play_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "play_button.png")),
+        self.play_icon = customtkinter.CTkImage(light_image=Image.open("../icons/play_button.png"),
                                                 size=(20, 20))
-        self.pause_icon = customtkinter.CTkImage(light_image=Image.open(os.path.join(image_path, "pause_button.png")),
+        self.pause_icon = customtkinter.CTkImage(light_image=Image.open("../icons/pause_button.png"),
                                                  size=(20, 20))
         
         self.video = "not_setup"

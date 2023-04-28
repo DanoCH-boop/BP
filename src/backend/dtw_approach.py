@@ -17,8 +17,7 @@ if sr1 != sr2:
     print("sr1 and sr2 are not the same")
 
 # Divide the signal into frames of 10ms each
-frame_length = int(
-    sr1 * 0.1)  # 100ms = 0.1s, poskytlo lepsi vysledok [(150,50), (352,50)] pri 48kHz a [(150,50), (354,50)] pri 8kHz
+frame_length = int(sr1 * 0.1)  # 100ms = 0.1s, poskytlo lepsi vysledok [(150,50), (352,50)] pri 48kHz a [(150,50), (354,50)] pri 8kHz
 # frame_length = int(sr1*0.01) # 10ms = 0.01s, horsi vysledok
 
 # FUNKCIA KTORU STE MI POSKYTLI MA ROVNAKY VYSLEDOK AKO librosa.util.frame
