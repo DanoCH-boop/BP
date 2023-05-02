@@ -4,7 +4,7 @@ from PIL import Image, ImageTk
 from itertools import count, cycle
 
 
-# https://pythonprogramming.altervista.org/animate-gif-in-tkinter/
+# pythonprogrammi, https://pythonprogramming.altervista.org/animate-gif-in-tkinter/
 class ImageLabel(tk.Label):
     """
     A Label that displays images, and plays them if they are gifs
@@ -12,7 +12,7 @@ class ImageLabel(tk.Label):
     """
 
     def load(self, im):
-        """Load the image into the frame"""
+        """Load the image(s) into the frame"""
         if isinstance(im, str):
             im = Image.open(im)
         frames = []

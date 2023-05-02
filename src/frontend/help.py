@@ -4,9 +4,8 @@ from tkinter.messagebox import showinfo
 import tkinter as tk
 from tkinter.filedialog import askopenfilename
 import os
-from misc.convert import convert
+from misc.get_wav import get_wav
 from backend.align import align
-from misc.speech_segments import get_speech_segments
 import sys
 from PIL import Image, ImageTk
 import threading
@@ -55,7 +54,7 @@ class App(customtkinter.CTk):
         self.srtfilename = srtfilename
         self.filename1 = filename1
         self.filename2 = filename2
-        self.fname = fname
+        self.srtfilename2 = fname
 
         self.example_loaded = 1
 
@@ -78,7 +77,7 @@ class App(customtkinter.CTk):
                                                 size=(20, 20))
         self.pause_icon = customtkinter.CTkImage(light_image=Image.open("../icons/pause_button.png"),
                                                  size=(20, 20))
-
+        self.protocol("WM_DELETE_WINDOW", self.cleanup)
         # create menu frame
         self.sidebar_frame = customtkinter.CTkFrame(self, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, rowspan=2, sticky="nsew")
@@ -156,8 +155,6 @@ class App(customtkinter.CTk):
         self.signal_mismatch = np.array([])
         self.removed_indexes = []
         self.x_coords = np.arange(0, self.canvas_width, 0.1)
-        self.y_coords = []
-        self.y_coords2 = []
         self.offset = 0
 
         # init videos
@@ -170,34 +167,40 @@ class App(customtkinter.CTk):
         self.tkvideo2.addvid.configure(command=self.chooseFile_btn2_event)
         
         # setup canvases for waveforms
-        self.first_frame = Waveform(master=self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), corner_radius=10)
+        self.first_frame = Waveform(master=self.main_frame, mode="in", other_frame=None, video=self.tkvideo1, srt_fname=self.srtfilename, fname=self.filename1,
+                                     fg_color=("#dbdbdb", "#2b2b2b"),
+                                     corner_radius=10)
         self.first_frame.grid(row=0, column=1, padx=10, pady=(10, 0), sticky="nsew")
         self.update()
         self.first_frame.canvas.create_line(0, self.first_frame.canvas.winfo_height() / 2, self.canvas_width,
                                             self.first_frame.canvas.winfo_height() / 2, fill=self.normal_fill)
-        self.first_frame.scrollbar.configure(command=self.draw_waveform1)
+        self.first_frame.scrollbar.configure(command=self.first_frame.draw_waveform)
 
-        self.second_frame = Waveform(master=self.main_frame, fg_color=("#dbdbdb", "#2b2b2b"), corner_radius=10)
+        self.second_frame = Waveform(master=self.main_frame, mode="out", other_frame=self.first_frame, video=self.tkvideo2, srt_fname=self.srtfilename2, fname=self.filename2,
+                                      fg_color=("#dbdbdb", "#2b2b2b"), 
+                                      corner_radius=10)
         self.second_frame.grid(row=2, column=1, padx=10, pady=(5, 0), sticky="nsew")
         self.update()
         self.second_frame.canvas.create_line(0, self.second_frame.canvas.winfo_height() / 2, self.canvas_width,
                                              self.second_frame.canvas.winfo_height() / 2, fill=self.normal_fill)
-        self.second_frame.scrollbar.configure(command=self.draw_waveform2)
+        self.second_frame.scrollbar.configure(command=self.second_frame.draw_waveform)
+        self.first_frame.other_frame = self.second_frame
         
-    
         # initiate subs frame
-        self.orig_sub = SubClass(self.subs_frame, mode="in", appr=self.appearance_mode_menu.get(), corner_radius=10,
+        self.orig_sub = SubClass(self.subs_frame, mode="in", frame=self.first_frame, appr=self.appearance_mode_menu.get(), corner_radius=10,
                                                     text_color=("gray10", "gray90"),
                                                     height=260, wrap="none",
                                                     font=customtkinter.CTkFont(family="Consolas"))
+        self.first_frame.sub = self.orig_sub
         self.orig_sub.grid(row=0, column=0, padx=10, pady=0, sticky="we")
         self.orig_sub.srt_add.configure(fg_color="transparent", image=self.add_icon, command=self.choose_srtFile_event)
 
-        self.aligned_sub = SubClass(self.subs_frame, mode="out", appr=self.appearance_mode_menu.get(), corner_radius=10,
+        self.aligned_sub = SubClass(self.subs_frame, mode="out", frame=self.second_frame, appr=self.appearance_mode_menu.get(), corner_radius=10,
                                                     text_color=("gray10", "gray90"),
                                                     height=260, wrap="none",
                                                     font=customtkinter.CTkFont(family="Consolas"))
         self.aligned_sub.grid(row=0, column=1, padx=10, pady=0, sticky="ew")
+        self.second_frame.sub = self.aligned_sub
 
         self.align_button.configure(state="disabled")
 
@@ -215,10 +218,10 @@ class App(customtkinter.CTk):
         """
         if event.widget.winfo_id() == self.first_frame.canvas.winfo_id():
             widget = self.first_frame.scrollbar
-            func = self.draw_waveform1
+            func = self.first_frame.draw_waveform
         elif event.widget.winfo_id() == self.second_frame.canvas.winfo_id():
             widget = self.second_frame.scrollbar
-            func = self.draw_waveform2
+            func = self.second_frame.draw_waveform
         x, _ = widget.get()
         offset = -1 * (event.delta / 120) * 0.01
         scroll = x + offset
@@ -242,7 +245,7 @@ class App(customtkinter.CTk):
         t = threading.Thread(target=func)
         t.daemon = True
         t.start()
-
+        
         # wait for the window to be destroyed before continuing
         self.toplevel_window.wait_window()
 
@@ -264,6 +267,7 @@ class App(customtkinter.CTk):
             return
 
         print(self.filename1)
+        self.first_frame.fname = self.filename1
         self.window_handler(self.generating_waveform1)
 
     def generating_waveform1(self):
@@ -273,14 +277,15 @@ class App(customtkinter.CTk):
         if self.filename1.rsplit(".", 1)[1] == "mp4":
             self.tkvideo1.video_setup(self.appearance_mode_menu.get(), self.filename1)
         self.toplevel_window.focus()
-        self.y_coords, self.sr = convert(self.filename1, self.canvas_height)
-        self.first_frame.scrollbar.set(0, 1 / (len(self.y_coords) / 1000))
+        self.first_frame.y_coords, self.sr = get_wav(self.filename1, self.canvas_height)
+        self.first_frame.sr = self.sr
+        self.first_frame.x_coords = self.x_coords
+        self.first_frame.gen_wav()
         if self.srtfilename != "":
-            self.mark_speech_segments()
-        self.draw_waveform1()
-        self.check_files()
+            self.first_frame.mark_speech_segments()
         self.first_frame.canvas.bind('<Enter>', self._bound_to_mousewheel)
         self.first_frame.canvas.bind('<Leave>', self._unbound_to_mousewheel)
+        self.check_files()
         self.toplevel_window.destroy()
 
     def chooseFile_btn2_event(self):
@@ -297,10 +302,11 @@ class App(customtkinter.CTk):
             self.filename2 = previous2
             return
         elif self.filename2.rsplit(".", 1)[1] not in ("mp4", "wav"):
-            showinfo("Wrong file type", f"File \"{self.filename2.rsplit('/', 1)[-1]}\" is not an Mp4 file!")
+            showinfo("Wrong file type", f"File \"{self.filename2.rsplit('/', 1)[-1]}\" is not an Mp4/WAV file!")
             return
        
         print(self.filename2)
+        self.second_frame.fname = self.filename2
         self.window_handler(self.generating_waveform2)
 
     def generating_waveform2(self):
@@ -310,12 +316,13 @@ class App(customtkinter.CTk):
         if self.filename2.rsplit(".", 1)[1] == "mp4":
             self.tkvideo2.video_setup(self.appearance_mode_menu.get(), self.filename2)
         self.toplevel_window.focus()
-        self.y_coords2, _ = convert(self.filename2, self.canvas_height)
-        self.second_frame.scrollbar.set(0, 1 / (len(self.y_coords2) / 1000))
-        self.draw_waveform2()
-        self.check_files()
+        self.second_frame.y_coords, _ = get_wav(self.filename2, self.canvas_height)
+        self.second_frame.sr = self.sr
+        self.second_frame.x_coords = self.x_coords
+        self.second_frame.gen_wav()
         self.second_frame.canvas.bind('<Enter>', self._bound_to_mousewheel)
         self.second_frame.canvas.bind('<Leave>', self._unbound_to_mousewheel)
+        self.check_files()
         self.toplevel_window.destroy()
 
     def choose_srtFile_event(self):
@@ -335,11 +342,11 @@ class App(customtkinter.CTk):
             showinfo("Wrong file type", f"File \"{self.srtfilename.rsplit('/', 1)[-1]}\" is not an SRT file!")
             return
         print(self.srtfilename)
-
+        self.first_frame.srt_fname = self.srtfilename
         self.in_srt()
         
         if self.filename1 != "":
-            self.mark_speech_segments()
+            self.first_frame.mark_speech_segments()
         self.check_files()
 
     def in_srt(self):
@@ -348,198 +355,8 @@ class App(customtkinter.CTk):
         """
         self.orig_sub.srt_add.place_forget()
         self.orig_sub.insert_subs(self.srtfilename)
-        self.orig_sub.tag_bind("speech", '<Button-1>', self.sub_click_event)
+        self.orig_sub.tag_bind("speech", '<Button-1>', self.orig_sub.sub_click_event)
         self.orig_sub.configure(state="disabled")
-
-    # https://stackoverflow.com/a/24145562
-    def sub_click_event(self, event):
-        """Handles the click event on a speech segment in the first subtitles and highlights the corresponding 
-        segment in the first waveform.
-        """
-        sub_index = self.orig_sub.find_clicked_id(event)
-
-        # scroll to selected segment
-        self.first_frame.selected = sub_index
-        try:
-            x0, x1 = self.first_frame.segments[int(sub_index)]
-        except:
-            self.first_frame.selected = None
-            return
-        
-        img_width = x1 - x0
-        # offset to make the selected segment appear in the middle of the canvas
-        offset = (self.canvas_width - img_width) / 2
-        scroll = (x0 - offset) / (len(self.y_coords) / 10)
-        self.first_frame.scrollbar.set(scroll, scroll)
-        self.highlight_selected(sub_index)
-
-    def sub_click_eventA(self, event):
-        """Handles the click event on a speech segment in the second subtitles and highlights the corresponding 
-        segment in the second waveform.
-        """
-        sub_index = self.aligned_sub.find_clicked_id(event)
-
-        # scroll to selected segment
-        self.second_frame.selected = sub_index
-        try:
-            x0, x1 = self.second_frame.segments[int(sub_index)]
-        except:
-            self.second_frame.selected = None
-            return
-        
-        img_width = x1 - x0
-        # offset to make the selected segment appear in the middle of the canvas
-        offset = (self.canvas_width - img_width) / 2
-        scroll = (x0 - offset) / (len(self.y_coords2) / 10)
-        self.second_frame.scrollbar.set(scroll, scroll)
-        self.highlight_selectedA(sub_index)
-
-    def draw_waveform1(self, *args):
-        """Draws the waveform in the first_frame canvas based on the current scrollbar position. It also 
-        creates speech rectangles for the speech segments.
-        """
-        if self.filename1 == "":
-            return
-        self.first_frame.canvas.delete("all")
-        l1, _ = self.first_frame.scrollbar.get()
-        d1 = int(len(self.y_coords) * l1)
-        d2 = d1 + self.canvas_width * 10
-        self.first_frame.canvas.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords[d1:d2])),
-                               fill=self.normal_fill)
-        if self.srtfilename == "":
-            return
-        self.first_frame.create_speech_rectangles(d1 / 10, d2 / 10, 1)
-
-    def mark_speech_segments(self):
-        """Prepares and displays the speech segments in the first waveform as images with transparency."""
-        segments = get_speech_segments(self.srtfilename)
-        self.first_frame.segments = segments * (self.sr / 10)
-        for seg in self.first_frame.segments:
-            self.first_frame.prepare_images(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5)
-        self.first_frame.create_speech_rectangles(0, self.canvas_width, 1)
-        self.first_frame.canvas.tag_bind("speech", "<Button-1>", self.selected_speech_event)
-        # print("SIZE OF IMAGES", sys.getsizeof(self.images))
-
-    def selected_speech_event(self, event):
-        """Handles the click event on a speech segment in the first waveform and highlights the corresponding 
-        segment in the waveform and scrolls to and highlights the corresponding segment in the original subtitles.
-        """
-        item = event.widget.find_withtag('current')
-        tags = self.first_frame.canvas.itemcget(item, "tags")
-        id = tags.split(" ")[1]
-
-        self.first_frame.selected = id
-
-        # scroll to deleted
-        try:
-            print("id", int(id) + 1)
-            index = np.where([int(id) + 1 in subarr for subarr in self.grouped])[0]
-            print("index", self.signal_mismatch[index])
-            offset = self.canvas_width / 2 * 10
-            scroll = (self.signal_mismatch[index] - offset) / len(self.y_coords2)
-            print("scroll", scroll)
-            self.second_frame.scrollbar.set(scroll, scroll)
-            self.draw_waveform2()
-        except:
-            pass
-
-        self.highlight_selected(id)
-
-        # scroll to subs
-        self.orig_sub.see(id + ".first")
-        line = self.orig_sub.dlineinfo(id + ".first")
-        better_offset = 10  # for better visual
-        self.orig_sub.yview_scroll(line[1] - better_offset, 'pixels')
-
-    def highlight_selected(self, id):
-        """Highlights the selected segment in the fisrt subtitles and seeks to the corresponding time in the first video."""
-        print("highlighting" + id)
-
-        self.draw_waveform1()
-
-        # seek in video
-        x0, _ = self.first_frame.segments[int(id)]
-        if self.tkvideo1 != "not_setup":
-            self.tkvideo1.seek(x0 * 10 / self.sr)
-
-        self.orig_sub.highlight_sub(id)
-
-    def draw_waveform2(self, *args):
-        """Draws the waveform in the second_frame canvas based on the current scrollbar position and 
-        creates rectangles for the speech segments.
-        """
-        if self.filename2 == "":
-            return
-        self.second_frame.canvas.delete("all")
-        l1, _ = self.second_frame.scrollbar.get()
-        d1 = int(len(self.y_coords2) * l1)
-        d2 = d1 + self.canvas_width * 10
-        indices = np.where((d2 >= self.signal_mismatch) & (d1 <= self.signal_mismatch))[0]
-        for i in indices:
-            x = (self.signal_mismatch[i] - d1) / 10
-            self.second_frame.canvas.create_rectangle(x, 0, x + 5, self.canvas_height, fill=self.removed_fill,
-                                         outline=self.removed_fill, tags=("removed", str(i)))
-        self.second_frame.canvas.create_line(*zip(self.x_coords, (self.canvas_height / 2 - self.y_coords2[d1:d2])),
-                                fill=self.normal_fill)
-        if self.fname == "":
-            return
-        self.second_frame.create_speech_rectangles(d1 / 10, d2 / 10, 2)
-
-    def mark_speech_segmentsA(self):
-        """Prepares and displays the speech segments in the second waveform as images with transparency."""
-        segments = get_speech_segments(self.fname)
-        self.second_frame.segments = segments * (self.sr / 10)
-        for seg in self.second_frame.segments:
-            self.second_frame.prepare_images(seg[0], 0, seg[1], self.canvas_height, fill="#ff4f19", alpha=.5)
-        self.second_frame.create_speech_rectangles(0, self.canvas_width, 2)
-        self.second_frame.canvas.tag_bind("speech", "<Button-1>", self.selected_speech_eventA)
-        self.second_frame.canvas.tag_bind("removed", "<Button-1>", self.selected_speech_eventA)
-        # print("SIZE OF IMAGES", sys.getsizeof(self.images))
-
-    def selected_speech_eventA(self, event):
-        """Handles the click event on a speech segment in the second waveform and highlights the corresponding 
-        segment in the waveform and scrolls to and highlights the corresponding segment in the aligned subtitles.
-        """
-        item = event.widget.find_withtag('current')
-        tags = self.second_frame.canvas.itemcget(item, "tags")
-        id = tags.split(" ")[1]
-
-        self.second_frame.selected = id
-        print(tags)
-        # if a deleted segment is selected (the scene missing from the second video)
-        # scroll to segment in first waveform
-        if tags.split(" ")[0] == "removed":
-            # get the first deleted subtitle
-            id_del = self.grouped[int(id)][0]
-            x0, x1 = self.first_frame.segments[int(id_del) - 1]
-            img_width = x1 - x0
-            # offset to make the selected segment appear in the middle of the canvas
-            offset = (self.canvas_width - img_width) / 2
-            scroll = (x0 - offset) / (len(self.y_coords) / 10)
-            self.first_frame.scrollbar.set(scroll, scroll)
-            self.draw_waveform1()
-            return
-
-        self.highlight_selectedA(id)
-
-        # scroll to subs
-        self.aligned_sub.see(id + ".first")
-        line = self.aligned_sub.dlineinfo(id + ".first")
-        better_offset = 10  # for better visual
-        self.aligned_sub.yview_scroll(line[1] - better_offset, 'pixels')
-
-    def highlight_selectedA(self, id):
-        """Highlights the selected segment in the second subtitles and seeks to the corresponding time in the second video."""
-        print("highlighting" + id)
-
-        self.draw_waveform2()
-
-        # seek in video
-        x0, _ = self.second_frame.segments[int(id)]
-        if self.tkvideo2 != "not_setup":
-            self.tkvideo2.seek(x0 * 10 / self.sr)
-
-        self.aligned_sub.highlight_sub(id)
 
     def align_event(self):
         """
@@ -549,6 +366,7 @@ class App(customtkinter.CTk):
         self.toplevel_window = ToplevelWindow(self.appearance_mode_menu.get())
         self.toplevel_window.title("Aligning signals")
         self.toplevel_window.label.configure(text="Aligning signals...")
+        self.toplevel_window.focus()
         # start a new thread to run the event handling code
         t = threading.Thread(target=self.align_signals)
         t.daemon = True
@@ -561,17 +379,17 @@ class App(customtkinter.CTk):
         """
         Aligns the two waveforms and creates a new SRT file with aligned subtitles.
         """
-        self.toplevel_window.focus()
+        self.toplevel_window.grab_set()
         filenames = [self.filename1, self.filename2, self.srtfilename]
-        self.removed_indexes, self.signal_mismatch, self.grouped = align(filenames)
+        self.signal_mismatch1, self.signal_mismatch2, self.removed_indexes, self.first_frame.grouped = align(filenames)
         self.first_frame.removed_indexes = self.removed_indexes
         # self.removed_indexes, self.signal_mismatch, self.grouped = align_test()
-        self.signal_mismatch = np.array(self.signal_mismatch)
-        self.signal_mismatch = self.signal_mismatch * self.sr
+        self.first_frame.signal_mismatch = np.array(self.signal_mismatch1) * self.sr
+        self.second_frame.signal_mismatch = np.array(self.signal_mismatch2) * self.sr
         self.aligned_text.configure(text="Subtiles Aligned!")
         self.align_button.configure(state="disabled")
         self.out_srt()
-        self.mark_speech_segmentsA()
+        self.second_frame.mark_speech_segments()
         self.out_wav()
         # close the window
         self.toplevel_window.destroy()
@@ -582,14 +400,14 @@ class App(customtkinter.CTk):
         """
         # remove not aligned label
         self.aligned_sub.not_aligned_label.place_forget()
-        self.fname = self.filename2.rsplit(".", 1)[0] + ".srt"
-        
+        self.srtfilename2 = self.filename2.rsplit(".", 1)[0] + ".srt"
+        self.second_frame.srt_fname = self.srtfilename2
         # insert subs
-        self.aligned_sub.insert_subs(self.fname)
-        self.aligned_sub.tag_bind("speech", '<Button-1>', self.sub_click_eventA)
+        self.aligned_sub.insert_subs(self.srtfilename2)
+        self.aligned_sub.tag_bind("speech", '<Button-1>', self.aligned_sub.sub_click_event)
         self.aligned_sub.configure(state="disabled")
 
-        # removed subs   red in original sub text
+        # removed subs are red in original sub text
         self.orig_sub.configure(state="normal")
         for id in self.removed_indexes:
             self.orig_sub.tag_config(str(id - 1), foreground=self.removed_fill)
@@ -599,17 +417,16 @@ class App(customtkinter.CTk):
         """
         Helper function that prepares the removed images and redraws the waveforms.
         """
-        if len(self.signal_mismatch) == 0:
-            return
         self.prepare_removed_images()
-        self.draw_waveform1()
-        self.draw_waveform2()
+        self.first_frame.draw_waveform()
+        self.second_frame.draw_waveform()
 
     def prepare_removed_images(self):
         """
         Prepares removed images by replacing them with red images of the same size.
         """
         for id in self.removed_indexes:
+            print("here")
             w = self.first_frame.images[id - 1].width()
             h = self.first_frame.images[id - 1].height()
             red_color = (219, 55, 55, 127)
@@ -685,6 +502,21 @@ class App(customtkinter.CTk):
         self.orig_sub.appr = 0
         self.aligned_sub.appr = 0
 
+    def cleanup(self):
+        """Deletes all .wav files that are requiered for drawing the waveform and the algorithm"""
+        print(self.filename1, self.filename2)
+        files = [self.filename1, self.filename2]
+        rmv_files = []
+        for file in files:
+            rmv_files.append(file.rsplit('.', 1)[0] + "_8khz.wav")
+            rmv_files.append(file.rsplit('.', 1)[0] + "_800hz.wav")
+
+        print(rmv_files)
+        for rmv_file in rmv_files:
+            if os.path.exists(rmv_file):
+                os.remove(rmv_file)
+
+        self.destroy()
 
 if __name__ == "__main__":
     app = App()

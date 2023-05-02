@@ -5,11 +5,11 @@ Okej, takže vy sme mi vlastne povedali,
 že to má byť nejaká standalone aplikácia najlepšie, že?
 
 2
-00:00:13,470 --> 00:00:13,800
+00:00:13,470 --> 00:00:13,780
 Ano. Ano.
 
 3
-00:00:13,780 --> 00:00:24,250
+00:00:13,800 --> 00:00:24,250
 Jasné a teda používanie nejakých týchto tých tých libraries pythonovských
 mám akože povolené a že nemusí...,
 alebo že mám sa akože nejako obmedziť aby toho zas nebolo veľa alebo.

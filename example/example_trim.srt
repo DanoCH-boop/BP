@@ -4,17 +4,27 @@ Prvé čo som si, mám tu nejaké otázky.
 Okej, takže vy sme mi vlastne povedali,
 že to má byť nejaká s
 
-4
+2
+00:00:10,000 --> 00:00:19,250
+anie nejakých týchto tých tých libraries pythonovských
+mám akože povolené a že nemusí...,
+alebo že mám sa akože nejako obmedziť aby toho zas nebolo veľa alebo.
+
+3
 00:00:19,670 --> 00:00:20,570
 Jak to mám brať?
 
-5
+4
 00:00:22,120 --> 00:00:24,110
 Berte to ak aby to bolo pre uživatela čo najlahšie jo,
 
-6
+5
 00:00:24,120 --> 00:00:25,000
-to znamená, že t
+to znamená, že tam 
+
+6
+00:00:25,000 --> 00:00:26,240
+ožnosť knihovny získať,
 
 7
 00:00:26,300 --> 00:00:29,870

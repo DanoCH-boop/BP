@@ -1,0 +1,33 @@
+1
+00:00:04,600 --> 00:00:09,500
+Prvé čo som si, mám tu nejaké otázky.
+Okej, takže vy sme mi vlastne povedali,
+že to má byť
+
+2
+00:00:09,500 --> 00:00:19,250
+da používanie nejakých týchto tých tých libraries pythonovských
+mám akože povolené a že nemusí...,
+alebo že mám sa akože nejako obmedziť aby toho zas nebolo veľa alebo.
+
+3
+00:00:19,670 --> 00:00:20,570
+Jak to mám brať?
+
+4
+00:00:22,120 --> 00:00:24,110
+Berte to ak aby to bolo pre uživatela čo najlahšie jo,
+
+5
+00:00:24,120 --> 00:00:24,750
+to znamená, že
+
+6
+00:00:24,750 --> 00:00:26,240
+vi možnosť knihovny získať,
+
+7
+00:00:26,300 --> 00:00:29,870
+alebo ich tam rovno pribalte,
+alebo tam dajte nejaké requirements.
+

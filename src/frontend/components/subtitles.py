@@ -4,9 +4,10 @@ from misc.process_sub import process_sub
 
 
 class SubClass(customtkinter.CTkTextbox):
-    def __init__(self, *args, mode, appr, **kwargs):
+    def __init__(self, *args, mode, frame, appr, **kwargs):
         super().__init__(*args, **kwargs)
         self.appr = appr
+        self.frame = frame
         self.previous_tag2 = None
         if mode == "in":
             self.label = "Original subtitles:\n"
@@ -49,6 +50,7 @@ class SubClass(customtkinter.CTkTextbox):
         index = self.index("@%s,%s" % (event.x, event.y))
         tags = self.tag_names(index)
         self.previous_tag1 = tags[1]
+        # if the subtitle you are hovering over is selected, do nothing
         if self.tag_cget(tags[1], "background") in ("#eab17f", "#925827"):
             return
         event.widget.tag_configure(tags[1], background="#dbdbdb")
@@ -60,7 +62,7 @@ class SubClass(customtkinter.CTkTextbox):
         if self.tag_cget(self.previous_tag1, "background") in ("#eab17f", "#925827"):
             return
         event.widget.tag_configure(self.previous_tag1, background="")
-        event.widget.tag_configure("speech", background="")
+        # event.widget.tag_configure("speech", background="")
 
     def find_clicked_id(self, event):
         """Finds the id of a clicked sub and returns it"""
@@ -83,4 +85,25 @@ class SubClass(customtkinter.CTkTextbox):
         self.tag_config(id, background="#eab17f")
         if self.appr == 1:
             self.tag_config(id, background="#925827")
+
+    def sub_click_event(self, event):
+        """Handles the click event on a speech segment in the first subtitles and highlights the corresponding 
+        segment in the first waveform.
+        """
+        sub_index = self.find_clicked_id(event)
+        self.highlight_sub(sub_index)
+        # scroll to selected segment
+        self.frame.selected = sub_index
+        try:
+            x0, x1 = self.frame.segments[int(sub_index)]
+        except:
+            self.frame.selected = None
+            return
+        
+        img_width = x1 - x0
+        # offset to make the selected segment appear in the middle of the canvas
+        offset = (self.frame.canvas_width - img_width) / 2
+        scroll = (x0 - offset) / (len(self.frame.y_coords) / 10)
+        self.frame.scrollbar.set(scroll, scroll)
+        self.frame.highlight_selected(sub_index)
         
