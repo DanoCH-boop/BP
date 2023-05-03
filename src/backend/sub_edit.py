@@ -18,8 +18,8 @@ def sub_edit(start, end, out_srtfile, offset, mode=0):
     # part1 = subs.slice(starts_before={'minutes': start / 60})
     # part2 = subs.slice(starts_after={'minutes': end / 60})
     # part2.shift(seconds=shift)
-    part1 = subs.slice(starts_before={'minutes': start/60})
-    part2 = subs.slice(ends_after={'minutes': end/60})
+    part1 = subs.slice(starts_before={'seconds': start})
+    part2 = subs.slice(ends_after={'seconds': end})
     inside = 0
 
     # cut is inside a subtitle
@@ -63,12 +63,11 @@ def sub_edit(start, end, out_srtfile, offset, mode=0):
         end_index = part2[0].index - 1
 
         problem_time2 = time_convert(part2[0].start)
-        # cut ends after a subtitle starts
+        # cut ends after a subtitle starts, we compare against start, since part2 is already shifted
         if problem_time2 < start:
             off = start - problem_time2
             dur = time_convert(part2[0].duration)
             delta = off / dur
-            print(delta)
             part2[0].start += {'seconds': off}
             part2[0].text = part2[0].text[int(delta * len(part2[0].text)) - 1:]
 

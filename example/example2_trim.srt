@@ -1,12 +1,12 @@
 1
-00:00:04,600 --> 00:00:09,500
+00:00:04,600 --> 00:00:09,750
 Prvé čo som si, mám tu nejaké otázky.
 Okej, takže vy sme mi vlastne povedali,
-že to má byť
+že to má byť nej
 
 2
-00:00:09,500 --> 00:00:19,250
-da používanie nejakých týchto tých tých libraries pythonovských
+00:00:09,750 --> 00:00:19,250
+užívanie nejakých týchto tých tých libraries pythonovských
 mám akože povolené a že nemusí...,
 alebo že mám sa akože nejako obmedziť aby toho zas nebolo veľa alebo.
 
@@ -19,12 +19,12 @@ Jak to mám brať?
 Berte to ak aby to bolo pre uživatela čo najlahšie jo,
 
 5
-00:00:24,120 --> 00:00:24,750
-to znamená, že
+00:00:24,120 --> 00:00:25,000
+to znamená, že tam 
 
 6
-00:00:24,750 --> 00:00:26,240
-vi možnosť knihovny získať,
+00:00:25,000 --> 00:00:26,240
+ožnosť knihovny získať,
 
 7
 00:00:26,300 --> 00:00:29,870

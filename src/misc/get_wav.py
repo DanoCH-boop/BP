@@ -9,7 +9,7 @@ def get_wav(file, canvas_height):
     y, sr = librosa.load(wav_filename, sr=None)
     # Calculate the x and y coordinates of the waveform lines
     num_frames = y.size
-    y_scale = canvas_height / 2
-    y_coords = (y[:-1] + y[1:]) * y_scale * 2
+    y_scale = canvas_height
+    y_coords = (y[:-1] + y[1:]) * y_scale
     print("convert", num_frames)
     return y_coords, sr

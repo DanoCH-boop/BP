@@ -3,7 +3,7 @@ import numpy as np
 
 
 def get_speech_segments(file):
-    """Computes all the start and end of each speech segments from subtitles"""
+    """Computes the start and end of each speech segments from subtitles"""
     subs = pysrt.open(file)
 
     # convert the start and end times to NumPy arrays

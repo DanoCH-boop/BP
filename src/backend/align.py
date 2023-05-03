@@ -9,6 +9,7 @@ from backend.find_cuts import find_cuts
 
 
 def align(args):
+    """Heart of the algorithm, converts mp4 to wav, finds dtw path, finds cuts"""
     # Load signals
     wav_file1 = convert(args[0], sr=8000)
     wav_file2 = convert(args[1], sr=8000)
@@ -56,9 +57,8 @@ def align(args):
         grouped_ri.append(aggr)
 
     print(mismatches1)
-    print(mismatches2)
     print(removed_indexes)
     ri = np.array(removed_indexes, dtype=int)
     grouped_ri = np.array(grouped_ri, dtype=int)
 
-    return mismatches1, mismatches2, ri , grouped_ri
+    return mismatches1, mismatches2, ri, grouped_ri

@@ -5,7 +5,7 @@ def convert(filename, sr):
     if sr == 800:
         abr = "_800hz.wav"
     wav_filename = filename.rsplit('.', 1)[0] + abr
-    mp4_to_wav1 = f"ffmpeg -i {filename} -ar {str(sr)}  -y {wav_filename}"
+    mp4_to_wav1 = f"ffmpeg -i {filename} -ar {str(sr)} -y {wav_filename}"
     os.system(mp4_to_wav1)
     print("Conversion done")
 
