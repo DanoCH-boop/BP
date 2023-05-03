@@ -1,10 +1,15 @@
 # BP - Bachelor's Thesis
 
-## Name : Tool for Automatic Subtitle Alignment
-## Supervisor : Ing. Tomáš Milet, Ph.D.
-## Author : Daniel Chudý
-## Place : FIT BUT, Brno
-## Year : 2023
+### Name 
+- Tool for Automatic Subtitle Alignment
+### Supervisor
+- Ing. Tomáš Milet, Ph.D.
+### Author
+- Daniel Chudý
+### Place
+- FIT BUT, Brno
+### Year
+- 2023
 
 ## Subtitle aligner
 
