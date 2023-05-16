@@ -115,7 +115,7 @@ class Waveform(customtkinter.CTkFrame):
         self.segments = segments * (self.sr / 10)
         for seg in self.segments:
             self.prepare_images(seg[0], 0, seg[1], self.canvas_height, alpha=.5)
-        # self.create_speech_rectangles(0, self.canvas_width, 2)
+        self.create_speech_rectangles(0, self.canvas_width)
         self.canvas.tag_bind("speech", "<Button-1>", self.selected_speech_event)
         self.canvas.tag_bind("removed", "<Button-1>", self.selected_speech_event)
 
@@ -135,6 +135,8 @@ class Waveform(customtkinter.CTkFrame):
             offset = self.canvas_width / 2 * 10
             scroll = (click - offset) / len(self.other_frame.y_coords)
             print("scroll", scroll)
+            if scroll < 0:
+                scroll = 0
             self.other_frame.scrollbar.set(scroll, scroll)
             self.other_frame.draw_waveform()
             return
@@ -146,11 +148,13 @@ class Waveform(customtkinter.CTkFrame):
         
         if self.mode == "in":
             try:
-                print("id", int(id) + 1)
                 index = np.where([int(id) + 1 in subarr for subarr in self.grouped])[0]
                 offset = self.canvas_width / 2 * 10
-                scroll = (self.other_frame.signal_mismatch[index] - offset) / len(self.y_coords)
+                scroll = (self.other_frame.signal_mismatch[index] - offset) / len(self.other_frame.y_coords)
+                print(self.other_frame.signal_mismatch[index])
                 print("scroll", scroll)
+                if scroll < 0:
+                    scroll = 0
                 self.other_frame.scrollbar.set(scroll, scroll)
                 self.other_frame.draw_waveform()
             except:

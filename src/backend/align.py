@@ -21,20 +21,24 @@ def align(args):
     out_srtfile = args[1].rsplit('.', 1)[0] + ".srt"
     subs.save(out_srtfile)
 
+    # DEV
     # mode = 0
     # # Decide which signal is longer
     # if signal1.size - signal2.size < 0:
     #     signal1, signal2 = signal2, signal1
     #     mode = 1
+    # DEV
 
     path = dtw_appr(wav_file1, wav_file2)
-
+    print(path)
+    
     cuts = find_cuts(path) * amp
 
     mismatches1 = []
     mismatches2 = []
     indexes = []
     offset = 0
+    
     for cut in cuts:
         start = cut[0] - cut[1]
         end = cut[0]
@@ -47,18 +51,20 @@ def align(args):
             indexes.append((start_i, end_i))
         mismatches2.append(start_m)
     
-    removed_indexes = []
+    print(indexes)
+    l = np.unique(np.array(indexes))
+    print(l)
+    removed_indexes = np.array([], dtype=int)
     grouped_ri = []
     for index in indexes:
         aggr = []
         for i in range(index[0], index[1] + 1):
-            removed_indexes.append(i)
+            removed_indexes = np.append(removed_indexes, i)
             aggr.append(i)
         grouped_ri.append(aggr)
 
     print(mismatches1)
     print(removed_indexes)
-    ri = np.array(removed_indexes, dtype=int)
-    grouped_ri = np.array(grouped_ri, dtype=int)
-
-    return mismatches1, mismatches2, ri, grouped_ri
+    print(grouped_ri)
+    
+    return mismatches1, mismatches2, removed_indexes, grouped_ri

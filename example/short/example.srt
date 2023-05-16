@@ -1,0 +1,33 @@
+1
+00:00:04,600 --> 00:00:11,910
+Prvé čo som si, mám tu nejaké otázky.
+Okej, takže vy sme mi vlastne povedali,
+že to má byť nejaká standalone aplikácia najlepšie, že?
+
+2
+00:00:13,470 --> 00:00:13,780
+Ano. Ano.
+
+3
+00:00:13,800 --> 00:00:24,250
+Jasné a teda používanie nejakých týchto tých tých libraries pythonovských
+mám akože povolené a že nemusí...,
+alebo že mám sa akože nejako obmedziť aby toho zas nebolo veľa alebo.
+
+4
+00:00:24,670 --> 00:00:25,570
+Jak to mám brať?
+
+5
+00:00:27,120 --> 00:00:29,110
+Berte to ak aby to bolo pre uživatela čo najlahšie jo,
+
+6
+00:00:29,120 --> 00:00:36,240
+to znamená, že tam dáte viacero knihoven,
+tak nejakým jednoduchým spôsobem poskytnite užívateľovi možnosť knihovny získať,
+
+7
+00:00:36,300 --> 00:00:39,870
+alebo ich tam rovno pribalte,
+alebo tam dajte nejaké requirements.
